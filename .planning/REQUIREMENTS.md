@@ -12,14 +12,14 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **QUANT-01**: FP8 format registry supporting E0M7, E1M6, E3M4, E5M2, E7M0 specifications
 - [ ] **QUANT-02**: Quantize/dequantize functions with Straight-Through Estimator gradient override
 - [ ] **QUANT-03**: Per-tensor scaling with delayed amax tracking (history buffer)
-- [ ] **QUANT-04**: Format-specific transfer functions (bit-index ↔ real value)
+- [ ] **QUANT-04**: Format-specific transfer functions (bit-index <-> real value)
 
 ### Stability Monitoring
 
 - [ ] **STAB-01**: Per-tensor overflow/underflow counters (forward, backward, optimizer)
 - [ ] **STAB-02**: NaN/Inf detection with configurable early stopping
 - [ ] **STAB-03**: Dynamic range tracking (amax moving average)
-- [ ] **STAB-04**: Bit-Stall counter (tracks when `round(b + Δb) == b` despite non-zero gradient)
+- [ ] **STAB-04**: Bit-Stall counter (tracks when `round(b + delta_b) == b` despite non-zero gradient)
 - [ ] **STAB-05**: Partition-relative gradient clipping (clip based on format's dynamic range)
 - [ ] **STAB-06**: Emergency mantissa shift (increase M bits on persistent NaN/high stall rate)
 
@@ -79,7 +79,7 @@ Deferred to future release. Tracked but not in current roadmap.
 ### Advanced Diagnostics
 
 - **DIAG-05**: Hessian eigenvalue spectrum (expensive, sample periodically)
-- **DIAG-06**: Bit-space uniformity analysis (Δbit vs Δw tracking)
+- **DIAG-06**: Bit-space uniformity analysis (delta_bit vs delta_w tracking)
 - **DIAG-07**: Format capacity utilization (which FP8 values actually used)
 
 ### Automation
@@ -95,7 +95,7 @@ Explicitly excluded. Documented to prevent scope creep.
 |---------|--------|
 | Distributed training | Single H100 constraint |
 | Production/inference optimization | Research test bench, not deployment |
-| Automatic hyperparameter tuning | ≤$20 budget limits sweep runs |
+| Automatic hyperparameter tuning | $20 budget limits sweep runs |
 | Multiple optimizer baselines | Focus on AdamW + manifold-aware only |
 | Data preprocessing pipelines | Use EurLex as-is to avoid confounds |
 | Architectural stability hacks (SmoothSwiGLU, etc.) | Want raw format behavior, not masked |
@@ -109,50 +109,50 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QUANT-01 | — | Pending |
-| QUANT-02 | — | Pending |
-| QUANT-03 | — | Pending |
-| QUANT-04 | — | Pending |
-| STAB-01 | — | Pending |
-| STAB-02 | — | Pending |
-| STAB-03 | — | Pending |
-| STAB-04 | — | Pending |
-| STAB-05 | — | Pending |
-| STAB-06 | — | Pending |
-| METR-01 | — | Pending |
-| METR-02 | — | Pending |
-| METR-03 | — | Pending |
-| METR-04 | — | Pending |
-| METR-05 | — | Pending |
-| GRAD-01 | — | Pending |
-| GRAD-02 | — | Pending |
-| GRAD-03 | — | Pending |
-| GRAD-04 | — | Pending |
-| INTG-01 | — | Pending |
-| INTG-02 | — | Pending |
-| INTG-03 | — | Pending |
-| INTG-04 | — | Pending |
-| MANI-01 | — | Pending |
-| MANI-02 | — | Pending |
-| MANI-03 | — | Pending |
-| MANI-04 | — | Pending |
-| DIAG-01 | — | Pending |
-| DIAG-02 | — | Pending |
-| DIAG-03 | — | Pending |
-| DIAG-04 | — | Pending |
-| EXPR-01 | — | Pending |
-| EXPR-02 | — | Pending |
-| EXPR-03 | — | Pending |
-| EXPR-04 | — | Pending |
-| ANAL-01 | — | Pending |
-| ANAL-02 | — | Pending |
-| ANAL-03 | — | Pending |
+| QUANT-01 | Phase 1 | Pending |
+| QUANT-02 | Phase 1 | Pending |
+| QUANT-03 | Phase 1 | Pending |
+| QUANT-04 | Phase 1 | Pending |
+| STAB-01 | Phase 2 | Pending |
+| STAB-02 | Phase 2 | Pending |
+| STAB-03 | Phase 2 | Pending |
+| STAB-04 | Phase 1 | Pending |
+| STAB-05 | Phase 4 | Pending |
+| STAB-06 | Phase 4 | Pending |
+| METR-01 | Phase 2 | Pending |
+| METR-02 | Phase 2 | Pending |
+| METR-03 | Phase 2 | Pending |
+| METR-04 | Phase 2 | Pending |
+| METR-05 | Phase 2 | Pending |
+| GRAD-01 | Phase 2 | Pending |
+| GRAD-02 | Phase 2 | Pending |
+| GRAD-03 | Phase 2 | Pending |
+| GRAD-04 | Phase 2 | Pending |
+| INTG-01 | Phase 3 | Pending |
+| INTG-02 | Phase 3 | Pending |
+| INTG-03 | Phase 3 | Pending |
+| INTG-04 | Phase 2 | Pending |
+| MANI-01 | Phase 5 | Pending |
+| MANI-02 | Phase 5 | Pending |
+| MANI-03 | Phase 5 | Pending |
+| MANI-04 | Phase 5 | Pending |
+| DIAG-01 | Phase 4 | Pending |
+| DIAG-02 | Phase 4 | Pending |
+| DIAG-03 | Phase 4 | Pending |
+| DIAG-04 | Phase 4 | Pending |
+| EXPR-01 | Phase 2 | Pending |
+| EXPR-02 | Phase 2 | Pending |
+| EXPR-03 | Phase 2 | Pending |
+| EXPR-04 | Phase 3 | Pending |
+| ANAL-01 | Phase 6 | Pending |
+| ANAL-02 | Phase 6 | Pending |
+| ANAL-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 39 total
-- Mapped to phases: 0
-- Unmapped: 39 ⚠️
+- Mapped to phases: 39
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-20 after initial definition*
+*Last updated: 2026-01-20 after roadmap creation*
