@@ -31,11 +31,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Per-tensor scaling with amax history correctly tracks dynamic range across batches
   4. Transfer functions correctly map bit-indices to real values and back for each format
   5. Bit-stall detection correctly identifies when quantized updates round to zero
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — FP8 format registry with transfer functions (TDD)
+- [ ] 01-02-PLAN.md — STE quantize/dequantize operations (TDD)
+- [ ] 01-03-PLAN.md — Dynamic scaling and bit-stall detection
 
 ### Phase 2: Baseline Validation
 **Goal**: Verified BF16 baseline and standard FP8 training with comprehensive monitoring infrastructure
@@ -122,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Quantization Engine | 0/? | Not started | - |
+| 1. Quantization Engine | 0/3 | Planned | - |
 | 2. Baseline Validation | 0/? | Not started | - |
 | 3. Model Integration | 0/? | Not started | - |
 | 4. Custom Format Testing | 0/? | Not started | - |
