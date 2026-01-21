@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 2 of 6 (Baseline Validation)
-Plan: 2 of 5 in current phase
+Plan: 3 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-21 - Completed 02-02-PLAN.md (Training Infrastructure)
+Last activity: 2026-01-21 - Completed 02-03-PLAN.md (Model and Trainer)
 
-Progress: [###.......] 28%
+Progress: [######....] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 18 min
-- Total execution time: 1.5 hours
+- Total plans completed: 6
+- Average duration: 16 min
+- Total execution time: 1.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-quantization-engine | 3 | 71 min | 24 min |
-| 02-baseline-validation | 2 | 14 min | 7 min |
+| 02-baseline-validation | 3 | 20 min | 7 min |
 
 **Recent Trend:**
-- Last 3 plans: 5 min, 8 min, 6 min
+- Last 3 plans: 8 min, 6 min, 6 min
 - Trend: Stable, fast execution
 
 *Updated after each plan completion*
@@ -53,6 +53,8 @@ Recent decisions affecting current work:
 - **NEW:** Explicit step numbers in W&B logging (avoids drift)
 - **NEW:** save_checkpoint on first NaN, stop at nan_patience
 - **NEW:** CheckpointManager keeps best separately from rotation
+- **NEW:** Flash Attention via scaled_dot_product_attention on PyTorch 2.0+
+- **NEW:** SNR = |mean| / std for gradient signal quality measurement
 
 ### Pending Todos
 
@@ -77,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 02-02-PLAN.md (Training Infrastructure)
+Stopped at: Completed 02-03-PLAN.md (Model and Trainer)
 Resume file: None
