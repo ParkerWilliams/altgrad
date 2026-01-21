@@ -83,6 +83,22 @@ Legal document classification with hierarchical categories. Chosen over standard
 - **Injection point:** Stiffness calculation in optimizer.step()
 - **State tracking:** Bit-position as latent integer state
 
+## Development Environment
+
+All Python operations must run within a virtual environment:
+
+```bash
+# Create (once)
+python -m venv .venv
+
+# Activate (each session)
+source .venv/bin/activate  # macOS/Linux
+# .venv\Scripts\activate   # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
 ## Constraints
 
 - **Hardware:** Single NVIDIA H100

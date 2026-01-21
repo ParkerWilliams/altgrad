@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 Phase: 1 of 6 (Quantization Engine)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-01-20 — Roadmap created with 6 phases, 39 requirements mapped
+Last activity: 2026-01-20 — Completed quick task 001: virtual environment note
 
 Progress: [..........] 0%
 
@@ -57,6 +57,12 @@ None yet.
 **Budget constraint:**
 - Single H100, $20 total compute limits experiment iterations
 - Short runs only - convergence trends, not full training
+
+### Quick Tasks Completed
+
+| # | Description | Date | Directory |
+|---|-------------|------|-----------|
+| 001 | Add virtual environment note to PROJECT.md | 2026-01-20 | [001-virtual-environment-note](./quick/001-virtual-environment-note/) |
 
 ## Session Continuity
 
