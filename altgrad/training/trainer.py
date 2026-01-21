@@ -7,6 +7,7 @@ Key features:
   - Mixed precision training (BF16/FP32)
   - Optional FP32 shadow model for gradient comparison
   - Optional bit-stall detection for FP8 training
+  - Simulated FP8 quantization with per-tensor dynamic scaling
   - Automatic checkpointing on intervals and anomalies
   - Gradient clipping and statistics logging
   - W&B integration with alerts
@@ -24,6 +25,7 @@ from __future__ import annotations
 
 import math
 import time
+from contextlib import contextmanager
 from typing import Any, Dict, Optional
 
 import torch
@@ -35,6 +37,15 @@ from altgrad.training.data import get_batch
 from altgrad.training.metrics import compute_gradient_stats, compute_stability_metrics
 from altgrad.training.checkpoint import CheckpointManager, load_checkpoint
 from altgrad.training.shadow import FP32ShadowModel
+
+# Quantization imports (guarded for non-FP8 usage)
+from altgrad.quantization import (
+    quantize,
+    compute_scale,
+    AmaxHistory,
+    BitStallDetector,
+    FORMAT_REGISTRY,
+)
 
 
 class Trainer:
@@ -121,10 +132,25 @@ class Trainer:
         if config.use_shadow:
             self.shadow = FP32ShadowModel(model)
 
-        # Bit-stall detector for FP8 training
-        self.bit_stall_detector: Optional[Any] = None
+        # Quantization setup when use_fp8=True
+        self.fp8_format = None
+        self.amax_histories: Dict[str, AmaxHistory] = {}
+        self.bit_stall_detector: Optional[BitStallDetector] = None
+        self.overflow_count = 0
+        self.underflow_count = 0
+        self.total_quant_ops = 0
+
         if config.use_fp8:
-            from altgrad.quantization import BitStallDetector
+            # Get format from registry (E5M2, E3M4, etc.)
+            self.fp8_format = FORMAT_REGISTRY[config.fp8_format]
+
+            # Create per-parameter amax history for dynamic scaling
+            # Track parameters that are 2D or higher (weights, not biases)
+            for name, param in model.named_parameters():
+                if param.requires_grad and param.dim() >= 2:
+                    self.amax_histories[name] = AmaxHistory(history_len=16)
+
+            # Create BitStallDetector for gradient stall monitoring
             self.bit_stall_detector = BitStallDetector()
 
         # Training state
@@ -149,6 +175,7 @@ class Trainer:
               - grad_*: Gradient statistics
               - grad_cos_sim/*: Shadow gradient similarity (if use_shadow)
               - grad_snr/*: SNR comparison (if use_shadow)
+              - quantization/*: FP8 metrics (if use_fp8)
         """
         self.model.train()
         self.optimizer.zero_grad()
@@ -156,8 +183,15 @@ class Trainer:
         # Forward pass with autocast
         # Use bfloat16 for non-FP8, float32 for simulated FP8 quantization
         dtype = torch.float32 if self.config.use_fp8 else torch.bfloat16
-        with torch.amp.autocast(device_type=self.device_type, dtype=dtype):
-            logits, loss = self.model(x, y)
+
+        # For FP8: quantize weights before forward, restore after
+        if self.config.use_fp8:
+            with self._quantized_forward_context():
+                with torch.amp.autocast(device_type=self.device_type, dtype=dtype):
+                    logits, loss = self.model(x, y)
+        else:
+            with torch.amp.autocast(device_type=self.device_type, dtype=dtype):
+                logits, loss = self.model(x, y)
 
         metrics: Dict[str, float] = {
             "loss": loss.item(),
@@ -169,6 +203,10 @@ class Trainer:
 
         # Unscale for gradient stats and clipping
         self.scaler.unscale_(self.optimizer)
+
+        # If FP8: quantize gradients before optimizer step
+        if self.config.use_fp8:
+            self._quantize_gradients()
 
         # Shadow model forward/backward for gradient comparison
         if self.shadow is not None:
@@ -199,6 +237,118 @@ class Trainer:
         # Optimizer step
         self.scaler.step(self.optimizer)
         self.scaler.update()
+
+        # Post-optimizer: detect bit-stall on weight updates (if FP8)
+        if self.config.use_fp8:
+            self._update_bit_stall_detector()
+            # Add quantization metrics
+            metrics.update(self._get_quantization_metrics())
+
+        return metrics
+
+    @contextmanager
+    def _quantized_forward_context(self):
+        """Context manager for simulated FP8 forward pass.
+
+        Temporarily replaces weights with quantized versions to simulate
+        FP8 matmul precision. Restores original weights on exit.
+        """
+        original_weights = {}
+
+        try:
+            # Apply quantization to tracked parameters
+            for name, param in self.model.named_parameters():
+                if name in self.amax_histories:
+                    # Store original weights
+                    original_weights[name] = param.data.clone()
+
+                    # Update amax history with current weights
+                    self.amax_histories[name].update(param.data)
+
+                    # Compute scale from amax history
+                    amax = self.amax_histories[name].get_amax()
+                    scale = compute_scale(amax, self.fp8_format)
+
+                    # Apply simulated quantization (stays in fp32 but with fp8 precision)
+                    scale_tensor = torch.tensor(scale, device=param.device, dtype=param.dtype)
+                    quantized = quantize(param.data, self.fp8_format, scale_tensor)
+                    param.data.copy_(quantized)
+
+            yield
+
+        finally:
+            # Restore original weights
+            for name, orig in original_weights.items():
+                # Use get_parameter to handle nested modules
+                parts = name.split(".")
+                module = self.model
+                for part in parts[:-1]:
+                    module = getattr(module, part)
+                param = getattr(module, parts[-1])
+                param.data.copy_(orig)
+
+    def _quantize_gradients(self):
+        """Quantize gradients before optimizer step (simulated FP8).
+
+        This simulates having FP8 precision in the gradient computation.
+        Also tracks overflow/underflow statistics for monitoring.
+        """
+        for name, param in self.model.named_parameters():
+            if param.grad is not None and name in self.amax_histories:
+                # Compute scale from gradient amax
+                grad_amax = param.grad.abs().max().item()
+                if grad_amax > 0:
+                    scale = compute_scale(grad_amax, self.fp8_format)
+                else:
+                    scale = 1.0
+
+                # Count overflow/underflow before quantization
+                max_val = self.fp8_format.max_representable_value * scale
+                # Minimum representable non-zero value (approximate)
+                min_val = max_val / (2 ** 14)  # Conservative estimate
+
+                overflow = (param.grad.abs() > max_val).sum().item()
+                underflow = ((param.grad.abs() < min_val) & (param.grad != 0)).sum().item()
+                self.overflow_count += overflow
+                self.underflow_count += underflow
+                self.total_quant_ops += param.grad.numel()
+
+                # Quantize gradient
+                scale_tensor = torch.tensor(scale, device=param.device, dtype=param.grad.dtype)
+                param.grad.data = quantize(param.grad.data, self.fp8_format, scale_tensor)
+
+    def _update_bit_stall_detector(self):
+        """Update bit-stall detector after optimizer step.
+
+        Checks for updates that rounded to zero in FP8 precision.
+        """
+        if self.bit_stall_detector is None:
+            return
+
+        lr = self.optimizer.param_groups[0]["lr"]
+
+        for name, param in self.model.named_parameters():
+            if param.grad is not None and name in self.amax_histories:
+                # Get current scale
+                amax = self.amax_histories[name].get_amax()
+                scale = compute_scale(amax, self.fp8_format)
+                scale_tensor = torch.tensor(scale, device=param.device, dtype=param.dtype)
+
+                # Update detector with current state
+                self.bit_stall_detector.update(
+                    param.data, param.grad.data, lr, self.fp8_format, scale_tensor
+                )
+
+    def _get_quantization_metrics(self) -> Dict[str, float]:
+        """Return quantization-specific metrics for logging."""
+        total = max(self.total_quant_ops, 1)
+        metrics = {
+            "quantization/overflow_rate": self.overflow_count / total,
+            "quantization/underflow_rate": self.underflow_count / total,
+        }
+
+        if self.bit_stall_detector is not None:
+            metrics["quantization/bit_stall_rate"] = self.bit_stall_detector.get_stall_rate()
 
         return metrics
 
@@ -346,7 +496,22 @@ class Trainer:
         ppl = train_metrics.get("perplexity", 0)
         grad_norm = train_metrics.get("grad_norm", 0)
         tps = train_metrics.get("throughput_tokens_sec", 0)
-        print(f"Step {step}: loss={loss:.4f}, ppl={ppl:.2f}, grad_norm={grad_norm:.4f}, tok/s={tps:.0f}")
+
+        # Base log line
+        log_line = f"Step {step}: loss={loss:.4f}, ppl={ppl:.2f}, grad_norm={grad_norm:.4f}, tok/s={tps:.0f}"
+
+        # Add gradient similarity for shadow runs
+        if "grad_cos_sim/mean" in train_metrics:
+            cos_sim = train_metrics.get("grad_cos_sim/mean", 0)
+            log_line += f", grad_sim={cos_sim:.3f}"
+
+        # Add quantization metrics for FP8 runs
+        if self.config.use_fp8:
+            stall_rate = train_metrics.get("quantization/bit_stall_rate", 0)
+            overflow_rate = train_metrics.get("quantization/overflow_rate", 0)
+            log_line += f", stall={stall_rate:.2%}, overflow={overflow_rate:.2%}"
+
+        print(log_line)
 
         # Log to W&B
         if self.tracker is not None:
