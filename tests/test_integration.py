@@ -381,3 +381,211 @@ class TestQuantizedLinearDifferentFormats:
 
         assert isinstance(model[0], QuantizedLinear)
         assert model[0].format is E3M4
+
+
+# =============================================================================
+# QuantizationConfig tests (per-layer precision configuration)
+# =============================================================================
+
+
+class TestLayerPrecisionRule:
+    """Test LayerPrecisionRule pattern matching."""
+
+    def test_layer_precision_rule_matches_pattern(self):
+        """LayerPrecisionRule should match layer names via regex pattern."""
+        from altgrad.integration import LayerPrecisionRule
+
+        rule = LayerPrecisionRule(pattern=r"\.attn\.", format="E5M2")
+
+        # Should match attention layers
+        assert rule.matches("transformer.h.0.attn.c_attn") is True
+        assert rule.matches("transformer.h.1.attn.c_proj") is True
+
+        # Should not match MLP layers
+        assert rule.matches("transformer.h.0.mlp.c_fc") is False
+        assert rule.matches("transformer.h.0.mlp.c_proj") is False
+
+    def test_layer_precision_rule_none_format(self):
+        """LayerPrecisionRule with format=None should return None (BF16)."""
+        from altgrad.integration import LayerPrecisionRule
+
+        rule = LayerPrecisionRule(pattern=r"\.attn\.", format=None)
+
+        assert rule.get_format() is None
+
+
+class TestQuantizationConfig:
+    """Test QuantizationConfig per-layer format selection."""
+
+    def test_quantization_config_get_format_for_layer(self):
+        """QuantizationConfig should route layers to different formats based on rules."""
+        from altgrad.integration import LayerPrecisionRule, QuantizationConfig
+
+        config = QuantizationConfig(
+            default_format="E5M2",
+            layer_rules=[
+                LayerPrecisionRule(r"\.attn\.", None),  # Attention stays BF16
+                LayerPrecisionRule(r"\.mlp\.", "E5M2"),  # MLP uses E5M2
+            ],
+        )
+
+        # Attention should be None (BF16)
+        assert config.get_format_for_layer("transformer.h.0.attn.c_attn") is None
+        assert config.get_format_for_layer("transformer.h.0.attn.c_proj") is None
+
+        # MLP should be E5M2
+        mlp_format = config.get_format_for_layer("transformer.h.0.mlp.c_fc")
+        assert mlp_format is not None
+        assert mlp_format.name == "E5M2"
+
+    def test_quantization_config_default_format(self):
+        """QuantizationConfig should use default_format for unmatched layers."""
+        from altgrad.integration import QuantizationConfig
+
+        config = QuantizationConfig(default_format="E3M4", layer_rules=[])
+
+        # Any layer should get E3M4
+        format_result = config.get_format_for_layer("any.layer.name")
+        assert format_result is not None
+        assert format_result.name == "E3M4"
+
+    def test_quantization_config_first_match_wins(self):
+        """QuantizationConfig should use first matching rule."""
+        from altgrad.integration import LayerPrecisionRule, QuantizationConfig
+
+        config = QuantizationConfig(
+            default_format="E5M2",
+            layer_rules=[
+                LayerPrecisionRule(r"c_proj", "E3M4"),  # More specific
+                LayerPrecisionRule(r"\.mlp\.", "E5M2"),  # More general
+            ],
+        )
+
+        # mlp.c_proj should match c_proj rule first -> E3M4
+        format_result = config.get_format_for_layer("transformer.h.0.mlp.c_proj")
+        assert format_result is not None
+        assert format_result.name == "E3M4"
+
+        # mlp.c_fc should match mlp rule -> E5M2
+        format_result = config.get_format_for_layer("transformer.h.0.mlp.c_fc")
+        assert format_result is not None
+        assert format_result.name == "E5M2"
+
+
+class TestQuantizeModelWithConfig:
+    """Test quantize_model() with QuantizationConfig for mixed precision."""
+
+    def test_quantize_model_with_config_mixed_precision(self):
+        """quantize_model with config should apply per-layer formats."""
+        from altgrad.integration import (
+            LayerPrecisionRule,
+            QuantizationConfig,
+            QuantizedLinear,
+            quantize_model,
+        )
+
+        config = GPTConfig(n_layer=2, n_head=2, n_embd=64, vocab_size=100)
+        model = GPT(config)
+
+        # Mixed precision: attention BF16, MLP FP8
+        quant_config = QuantizationConfig(
+            default_format="E5M2",
+            layer_rules=[
+                LayerPrecisionRule(r"\.attn\.", None),  # Attention stays BF16
+                LayerPrecisionRule(r"\.mlp\.", "E5M2"),  # MLP uses FP8
+                LayerPrecisionRule(r"lm_head", None),  # lm_head stays BF16
+            ],
+        )
+
+        quantize_model(model, config=quant_config)
+
+        # Attention should stay as nn.Linear (BF16)
+        attn_layer = model.transformer.h[0].attn.c_attn
+        assert isinstance(attn_layer, nn.Linear), "Attention should stay nn.Linear"
+        assert not isinstance(attn_layer, QuantizedLinear), "Attention should not be quantized"
+
+        # MLP should be QuantizedLinear with E5M2
+        mlp_layer = model.transformer.h[0].mlp.c_fc
+        assert isinstance(mlp_layer, QuantizedLinear), "MLP should be QuantizedLinear"
+        assert mlp_layer.fp8_format.name == "E5M2", "MLP format should be E5M2"
+
+        # lm_head should stay as nn.Linear
+        assert isinstance(model.lm_head, nn.Linear), "lm_head should stay nn.Linear"
+        assert not isinstance(model.lm_head, QuantizedLinear), "lm_head should not be quantized"
+
+    def test_quantize_model_config_different_formats(self):
+        """quantize_model should apply different formats to different layers."""
+        from altgrad.integration import (
+            LayerPrecisionRule,
+            QuantizationConfig,
+            QuantizedLinear,
+            quantize_model,
+        )
+
+        config = GPTConfig(n_layer=2, n_head=2, n_embd=64, vocab_size=100)
+        model = GPT(config)
+
+        # Different formats for c_fc and c_proj
+        quant_config = QuantizationConfig(
+            default_format=None,  # Default is BF16
+            layer_rules=[
+                LayerPrecisionRule(r"mlp\.c_fc", "E5M2"),  # c_fc uses E5M2
+                LayerPrecisionRule(r"mlp\.c_proj", "E3M4"),  # c_proj uses E3M4
+            ],
+        )
+
+        quantize_model(model, config=quant_config)
+
+        # c_fc should have E5M2
+        c_fc = model.transformer.h[0].mlp.c_fc
+        assert isinstance(c_fc, QuantizedLinear)
+        assert c_fc.fp8_format.name == "E5M2"
+
+        # c_proj should have E3M4
+        c_proj = model.transformer.h[0].mlp.c_proj
+        assert isinstance(c_proj, QuantizedLinear)
+        assert c_proj.fp8_format.name == "E3M4"
+
+    def test_quantize_model_requires_format_or_config(self):
+        """quantize_model should raise if neither format nor config provided."""
+        from altgrad.integration import quantize_model
+
+        model = nn.Sequential(nn.Linear(10, 5))
+
+        with pytest.raises(ValueError, match="Provide exactly one"):
+            quantize_model(model)  # Neither format nor config
+
+    def test_quantize_model_rejects_both_format_and_config(self):
+        """quantize_model should raise if both format and config provided."""
+        from altgrad.integration import QuantizationConfig, quantize_model
+
+        model = nn.Sequential(nn.Linear(10, 5))
+        config = QuantizationConfig(default_format="E5M2")
+
+        with pytest.raises(ValueError, match="Provide exactly one"):
+            quantize_model(model, E5M2, config=config)  # Both provided
+
+
+class TestCreateMixedPrecisionConfig:
+    """Test create_mixed_precision_config() helper function."""
+
+    def test_create_mixed_precision_config_defaults(self):
+        """create_mixed_precision_config should create standard GPT config."""
+        from altgrad.integration import create_mixed_precision_config
+
+        config = create_mixed_precision_config(
+            attention_format=None,  # BF16
+            mlp_format="E5M2",
+            lm_head_format=None,  # BF16
+        )
+
+        # Attention should be BF16
+        assert config.get_format_for_layer("transformer.h.0.attn.c_attn") is None
+
+        # MLP should be E5M2
+        mlp_format = config.get_format_for_layer("transformer.h.0.mlp.c_fc")
+        assert mlp_format is not None
+        assert mlp_format.name == "E5M2"
+
+        # lm_head should be BF16
+        assert config.get_format_for_layer("lm_head") is None
