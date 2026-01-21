@@ -28,7 +28,7 @@ from typing import Any, Dict, Optional
 
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler
+from torch.amp import GradScaler
 
 from altgrad.training.config import TrainConfig
 from altgrad.training.data import get_batch
@@ -99,7 +99,7 @@ class Trainer:
 
         # Gradient scaler for mixed precision
         # Use enabled=True only for CUDA (MPS/CPU don't support AMP scaler)
-        self.scaler = GradScaler(enabled=(self.device_type == "cuda"))
+        self.scaler = GradScaler("cuda", enabled=(self.device_type == "cuda"))
 
         # Checkpoint manager
         self.checkpoint_manager = CheckpointManager(

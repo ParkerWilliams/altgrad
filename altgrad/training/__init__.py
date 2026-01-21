@@ -1,16 +1,22 @@
 """Training infrastructure for AltGrad experiments.
 
 Provides complete training infrastructure including:
+  - nanoGPT-style model architecture
   - Data loading and tokenization
   - Training configuration with YAML serialization
   - Gradient and stability metrics computation
+  - FP32 shadow model for gradient comparison
+  - Training loop orchestration
   - Checkpoint management with rotation
   - W&B logging and alerts
 
 Submodules:
+    model: GPT model architecture (nanoGPT-style)
     data: EurLex data preparation and batch loading
     config: TrainConfig dataclass and YAML I/O
     metrics: Gradient statistics and stability metrics
+    shadow: FP32 shadow model for gradient comparison
+    trainer: Training loop orchestration
     checkpoint: Save/load with full state restoration
     callbacks: W&B tracking with alerts
 """
@@ -28,8 +34,14 @@ from altgrad.training.checkpoint import (
     CheckpointManager,
 )
 from altgrad.training.callbacks import WandbTracker
+from altgrad.training.model import GPT, GPTConfig
+from altgrad.training.shadow import FP32ShadowModel
+from altgrad.training.trainer import Trainer
 
 __all__ = [
+    # Model
+    "GPT",
+    "GPTConfig",
     # Data
     "prepare_eurlex",
     "get_batch",
@@ -41,6 +53,10 @@ __all__ = [
     "compute_gradient_stats",
     "compute_stability_metrics",
     "gradient_cosine_similarity",
+    # Shadow
+    "FP32ShadowModel",
+    # Trainer
+    "Trainer",
     # Checkpoint
     "save_checkpoint",
     "load_checkpoint",
