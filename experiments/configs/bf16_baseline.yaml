@@ -1,0 +1,45 @@
+# BF16 Baseline Experiment
+# Reference run for comparing FP8 formats
+
+# Model architecture (small for budget constraint)
+n_layer: 6
+n_head: 6
+n_embd: 384
+block_size: 256
+vocab_size: 50257  # GPT-2 vocab
+dropout: 0.0
+
+# Training
+batch_size: 12
+learning_rate: 6e-4
+max_steps: 2000  # Short run for convergence trend
+warmup_steps: 100
+grad_clip: 1.0
+
+# Precision
+use_fp8: false
+use_shadow: false  # No shadow needed for BF16 baseline
+
+# Checkpointing
+checkpoint_interval: 100
+checkpoint_dir: "checkpoints/bf16_baseline"
+max_checkpoints: 3
+
+# Stability thresholds
+nan_patience: 10
+bit_stall_threshold: 0.5
+overflow_threshold: 0.01
+dead_neuron_threshold: 1.0e-8
+dead_neuron_window: 100
+
+# Logging
+log_interval: 1
+eval_interval: 100
+
+# W&B
+project: "altgrad"
+run_name: "bf16-baseline"
+tags: ["baseline", "bf16", "eurlex"]
+
+# Reproducibility
+seed: 42
