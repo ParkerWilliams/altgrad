@@ -155,6 +155,20 @@ def load_config(path: str) -> TrainConfig:
     """
     with open(path, "r") as f:
         config_dict = yaml.safe_load(f)
+
+    # Ensure float fields are properly typed (YAML can parse 6e-4 as string)
+    float_fields = [
+        "dropout",
+        "learning_rate",
+        "grad_clip",
+        "bit_stall_threshold",
+        "overflow_threshold",
+        "dead_neuron_threshold",
+    ]
+    for field in float_fields:
+        if field in config_dict and config_dict[field] is not None:
+            config_dict[field] = float(config_dict[field])
+
     return TrainConfig(**config_dict)
 
 
