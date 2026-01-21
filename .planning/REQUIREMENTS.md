@@ -40,9 +40,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Model Integration
 
-- [ ] **INTG-01**: QuantizedLinear wrapper layer (inject quantization without forking nanoGPT)
-- [ ] **INTG-02**: `quantize_model()` surgery function for post-init layer replacement
-- [ ] **INTG-03**: Per-layer mixed precision config (attention in BF16, MLP in FP8)
+- [x] **INTG-01**: QuantizedLinear wrapper layer (inject quantization without forking nanoGPT)
+- [x] **INTG-02**: `quantize_model()` surgery function for post-init layer replacement
+- [x] **INTG-03**: Per-layer mixed precision config (attention in BF16, MLP in FP8)
 - [x] **INTG-04**: EurLex dataset integration with nanoGPT training loop
 
 ### Manifold-Aware Optimizer
@@ -64,7 +64,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **EXPR-01**: YAML/JSON experiment config grid
 - [x] **EXPR-02**: Per-run logging (W&B integration)
 - [x] **EXPR-03**: Checkpoint management with restart capability
-- [ ] **EXPR-04**: Format ablation runs (identical seeds/ordering across formats)
+- [x] **EXPR-04**: Format ablation runs (identical seeds/ordering across formats)
 
 ### Analysis Output
 
@@ -128,9 +128,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GRAD-02 | Phase 2 | Complete |
 | GRAD-03 | Phase 2 | Complete |
 | GRAD-04 | Phase 2 | Complete |
-| INTG-01 | Phase 3 | Pending |
-| INTG-02 | Phase 3 | Pending |
-| INTG-03 | Phase 3 | Pending |
+| INTG-01 | Phase 3 | Complete |
+| INTG-02 | Phase 3 | Complete |
+| INTG-03 | Phase 3 | Complete |
 | INTG-04 | Phase 2 | Complete |
 | MANI-01 | Phase 5 | Pending |
 | MANI-02 | Phase 5 | Pending |
@@ -143,7 +143,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXPR-01 | Phase 2 | Complete |
 | EXPR-02 | Phase 2 | Complete |
 | EXPR-03 | Phase 2 | Complete |
-| EXPR-04 | Phase 3 | Pending |
+| EXPR-04 | Phase 3 | Complete |
 | ANAL-01 | Phase 6 | Pending |
 | ANAL-02 | Phase 6 | Pending |
 | ANAL-03 | Phase 6 | Pending |
@@ -155,4 +155,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-21 after Phase 2 completion*
+*Last updated: 2026-01-21 after Phase 3 completion*
