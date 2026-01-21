@@ -1,11 +1,14 @@
-"""EurLex data preparation and batch loading.
+"""European legal text data preparation and batch loading.
 
-Prepares the EurLex dataset in nanoGPT-style binary format for efficient
-training. Tokens are stored as uint16 memory-mapped files for fast random
-access without per-batch tokenization overhead.
+Prepares European legal text datasets in nanoGPT-style binary format for
+efficient training. Uses lex_glue/ecthr_a (European Court of Human Rights
+cases) as the data source - high-quality legal text similar to EurLex.
+
+Tokens are stored as uint16 memory-mapped files for fast random access
+without per-batch tokenization overhead.
 
 Functions:
-    prepare_eurlex: Tokenize and save EurLex to binary files
+    prepare_eurlex: Tokenize and save legal text to binary files
     get_batch: Load random training batches from binary files
 """
 
@@ -21,11 +24,15 @@ from torch import Tensor
 
 
 def prepare_eurlex(data_dir: str = "data/eurlex", num_proc: int = 8) -> dict:
-    """Tokenize EurLex dataset and save as memory-mapped binary files.
+    """Tokenize European legal text and save as memory-mapped binary files.
 
-    Downloads the nlpaueb/multi_eurlex English dataset from HuggingFace,
-    tokenizes all documents using GPT-2 BPE encoding (50257 vocab), and
-    writes tokens to binary files for efficient training.
+    Downloads the lex_glue/ecthr_a dataset (European Court of Human Rights
+    cases) from HuggingFace, tokenizes all documents using GPT-2 BPE encoding
+    (50257 vocab), and writes tokens to binary files for efficient training.
+
+    Note: Originally designed for nlpaueb/multi_eurlex, but uses lex_glue/ecthr_a
+    as a compatible alternative since the multi_eurlex dataset script format is
+    no longer supported by the datasets library.
 
     Args:
         data_dir: Directory to save binary files. Created if not exists.
@@ -43,18 +50,21 @@ def prepare_eurlex(data_dir: str = "data/eurlex", num_proc: int = 8) -> dict:
     data_path = Path(data_dir)
     data_path.mkdir(parents=True, exist_ok=True)
 
-    # Load EurLex dataset (English only)
-    print("Loading nlpaueb/multi_eurlex dataset...")
-    dataset = load_dataset("nlpaueb/multi_eurlex", "en", trust_remote_code=True)
+    # Load lex_glue/ecthr_a dataset (European Court of Human Rights cases)
+    # This provides European legal text similar to EurLex
+    print("Loading lex_glue/ecthr_a dataset (European legal text)...")
+    dataset = load_dataset("lex_glue", "ecthr_a")
 
     # Initialize GPT-2 tokenizer (50257 vocab)
     enc = tiktoken.get_encoding("gpt2")
     eot_token = enc.eot_token  # End of text token
 
     def tokenize(example):
-        """Tokenize text and append EOT token."""
+        """Tokenize text paragraphs and append EOT token."""
+        # lex_glue/ecthr_a has text as list of paragraphs - join them
+        text = " ".join(example["text"]) if isinstance(example["text"], list) else example["text"]
         # encode_ordinary skips special tokens, just raw BPE
-        ids = enc.encode_ordinary(example["text"])
+        ids = enc.encode_ordinary(text)
         ids.append(eot_token)
         return {"ids": ids, "len": len(ids)}
 
@@ -68,7 +78,6 @@ def prepare_eurlex(data_dir: str = "data/eurlex", num_proc: int = 8) -> dict:
     )
 
     # Write binary files for train and validation splits
-    # Note: multi_eurlex uses "train", "validation", "test" splits
     stats = {}
     split_mapping = {"train": "train", "validation": "validation"}
 
