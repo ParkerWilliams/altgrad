@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 1 of 6 (Quantization Engine)
-Plan: 1 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-21 - Completed 01-01-PLAN.md (FP8 Format Registry)
+Last activity: 2026-01-21 - Completed 01-02-PLAN.md (Quantize/Dequantize Operations)
 
-Progress: [#.........] 10%
+Progress: [##........] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 61 min
-- Total execution time: 1.0 hours
+- Total plans completed: 2
+- Average duration: 33 min
+- Total execution time: 1.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-quantization-engine | 1 | 61 min | 61 min |
+| 01-quantization-engine | 2 | 66 min | 33 min |
 
 **Recent Trend:**
-- Last 5 plans: 61 min
-- Trend: Just started
+- Last 5 plans: 61 min, 5 min
+- Trend: Accelerating (plan 01-02 was very efficient at 5 min)
 
 *Updated after each plan completion*
 
@@ -45,6 +45,9 @@ Recent decisions affecting current work:
 - E3M4 bias=1 for range ~0.06 to ~124 (plan had bias=7 which gave wrong range)
 - Round-to-nearest-even for FP8 to_bits() tie-breaking (IEEE 754 standard)
 - E0M7 as pure fixed-point with sign-magnitude representation in [-127/128, 127/128]
+- STE passes gradients unchanged through quantization (dx = dy) - enables gradient flow through non-differentiable quantization
+- Dequantize scales gradient by scale factor (chain rule)
+- Scale parameter non-differentiable (returns None in backward pass)
 
 ### Pending Todos
 
@@ -68,6 +71,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-21T04:19:00Z
-Stopped at: Completed 01-01-PLAN.md (FP8 Format Registry)
+Last session: 2026-01-21T15:29:43Z
+Stopped at: Completed 01-02-PLAN.md (Quantize/Dequantize Operations)
 Resume file: None
