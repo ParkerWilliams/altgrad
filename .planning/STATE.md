@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 2 of 6 (Baseline Validation)
-Plan: 1 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-21 - Completed 02-01-PLAN.md (EurLex Data Preparation)
+Last activity: 2026-01-21 - Completed 02-02-PLAN.md (Training Infrastructure)
 
-Progress: [##........] 22%
+Progress: [###.......] 28%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 20 min
-- Total execution time: 1.3 hours
+- Total plans completed: 5
+- Average duration: 18 min
+- Total execution time: 1.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-quantization-engine | 3 | 71 min | 24 min |
-| 02-baseline-validation | 1 | 8 min | 8 min |
+| 02-baseline-validation | 2 | 14 min | 7 min |
 
 **Recent Trend:**
-- Last 3 plans: 5 min, 5 min, 8 min
+- Last 3 plans: 5 min, 8 min, 6 min
 - Trend: Stable, fast execution
 
 *Updated after each plan completion*
@@ -50,6 +50,9 @@ Recent decisions affecting current work:
 - Dequantize scales gradient by scale factor (chain rule)
 - Scale parameter non-differentiable (returns None in backward pass)
 - **NEW:** Use lex_glue/ecthr_a instead of nlpaueb/multi_eurlex (dataset script format deprecated)
+- **NEW:** Explicit step numbers in W&B logging (avoids drift)
+- **NEW:** save_checkpoint on first NaN, stop at nan_patience
+- **NEW:** CheckpointManager keeps best separately from rotation
 
 ### Pending Todos
 
@@ -74,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 02-01-PLAN.md (EurLex Data Preparation)
+Stopped at: Completed 02-02-PLAN.md (Training Infrastructure)
 Resume file: None
