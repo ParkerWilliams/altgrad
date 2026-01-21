@@ -16,34 +16,34 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Stability Monitoring
 
-- [ ] **STAB-01**: Per-tensor overflow/underflow counters (forward, backward, optimizer)
-- [ ] **STAB-02**: NaN/Inf detection with configurable early stopping
-- [ ] **STAB-03**: Dynamic range tracking (amax moving average)
+- [x] **STAB-01**: Per-tensor overflow/underflow counters (forward, backward, optimizer)
+- [x] **STAB-02**: NaN/Inf detection with configurable early stopping
+- [x] **STAB-03**: Dynamic range tracking (amax moving average)
 - [x] **STAB-04**: Bit-Stall counter (tracks when `round(b + delta_b) == b` despite non-zero gradient)
 - [ ] **STAB-05**: Partition-relative gradient clipping (clip based on format's dynamic range)
 - [ ] **STAB-06**: Emergency mantissa shift (increase M bits on persistent NaN/high stall rate)
 
 ### Training Metrics
 
-- [ ] **METR-01**: Train/validation loss logging per step/epoch
-- [ ] **METR-02**: Perplexity tracking for language modeling quality
-- [ ] **METR-03**: Wall-clock time and throughput (tokens/sec)
-- [ ] **METR-04**: BF16 baseline comparison plots (automated)
-- [ ] **METR-05**: Gradient cosine similarity (FP8 vs FP32 reference, periodic)
+- [x] **METR-01**: Train/validation loss logging per step/epoch
+- [x] **METR-02**: Perplexity tracking for language modeling quality
+- [x] **METR-03**: Wall-clock time and throughput (tokens/sec)
+- [x] **METR-04**: BF16 baseline comparison plots (automated)
+- [x] **METR-05**: Gradient cosine similarity (FP8 vs FP32 reference, periodic)
 
 ### Gradient Statistics
 
-- [ ] **GRAD-01**: Per-layer gradient norms (L2, Linf)
-- [ ] **GRAD-02**: Gradient SNR (FP8 vs FP32 reference)
-- [ ] **GRAD-03**: Dead neuron fraction detection
-- [ ] **GRAD-04**: Zero-update fraction tracking (weights that didn't change)
+- [x] **GRAD-01**: Per-layer gradient norms (L2, Linf)
+- [x] **GRAD-02**: Gradient SNR (FP8 vs FP32 reference)
+- [x] **GRAD-03**: Dead neuron fraction detection
+- [x] **GRAD-04**: Zero-update fraction tracking (weights that didn't change)
 
 ### Model Integration
 
 - [ ] **INTG-01**: QuantizedLinear wrapper layer (inject quantization without forking nanoGPT)
 - [ ] **INTG-02**: `quantize_model()` surgery function for post-init layer replacement
 - [ ] **INTG-03**: Per-layer mixed precision config (attention in BF16, MLP in FP8)
-- [ ] **INTG-04**: EurLex dataset integration with nanoGPT training loop
+- [x] **INTG-04**: EurLex dataset integration with nanoGPT training loop
 
 ### Manifold-Aware Optimizer
 
@@ -61,9 +61,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Experiment Infrastructure
 
-- [ ] **EXPR-01**: YAML/JSON experiment config grid
-- [ ] **EXPR-02**: Per-run logging (W&B integration)
-- [ ] **EXPR-03**: Checkpoint management with restart capability
+- [x] **EXPR-01**: YAML/JSON experiment config grid
+- [x] **EXPR-02**: Per-run logging (W&B integration)
+- [x] **EXPR-03**: Checkpoint management with restart capability
 - [ ] **EXPR-04**: Format ablation runs (identical seeds/ordering across formats)
 
 ### Analysis Output
@@ -113,25 +113,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QUANT-02 | Phase 1 | Complete |
 | QUANT-03 | Phase 1 | Complete |
 | QUANT-04 | Phase 1 | Complete |
-| STAB-01 | Phase 2 | Pending |
-| STAB-02 | Phase 2 | Pending |
-| STAB-03 | Phase 2 | Pending |
+| STAB-01 | Phase 2 | Complete |
+| STAB-02 | Phase 2 | Complete |
+| STAB-03 | Phase 2 | Complete |
 | STAB-04 | Phase 1 | Complete |
 | STAB-05 | Phase 4 | Pending |
 | STAB-06 | Phase 4 | Pending |
-| METR-01 | Phase 2 | Pending |
-| METR-02 | Phase 2 | Pending |
-| METR-03 | Phase 2 | Pending |
-| METR-04 | Phase 2 | Pending |
-| METR-05 | Phase 2 | Pending |
-| GRAD-01 | Phase 2 | Pending |
-| GRAD-02 | Phase 2 | Pending |
-| GRAD-03 | Phase 2 | Pending |
-| GRAD-04 | Phase 2 | Pending |
+| METR-01 | Phase 2 | Complete |
+| METR-02 | Phase 2 | Complete |
+| METR-03 | Phase 2 | Complete |
+| METR-04 | Phase 2 | Complete |
+| METR-05 | Phase 2 | Complete |
+| GRAD-01 | Phase 2 | Complete |
+| GRAD-02 | Phase 2 | Complete |
+| GRAD-03 | Phase 2 | Complete |
+| GRAD-04 | Phase 2 | Complete |
 | INTG-01 | Phase 3 | Pending |
 | INTG-02 | Phase 3 | Pending |
 | INTG-03 | Phase 3 | Pending |
-| INTG-04 | Phase 2 | Pending |
+| INTG-04 | Phase 2 | Complete |
 | MANI-01 | Phase 5 | Pending |
 | MANI-02 | Phase 5 | Pending |
 | MANI-03 | Phase 5 | Pending |
@@ -140,9 +140,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DIAG-02 | Phase 4 | Pending |
 | DIAG-03 | Phase 4 | Pending |
 | DIAG-04 | Phase 4 | Pending |
-| EXPR-01 | Phase 2 | Pending |
-| EXPR-02 | Phase 2 | Pending |
-| EXPR-03 | Phase 2 | Pending |
+| EXPR-01 | Phase 2 | Complete |
+| EXPR-02 | Phase 2 | Complete |
+| EXPR-03 | Phase 2 | Complete |
 | EXPR-04 | Phase 3 | Pending |
 | ANAL-01 | Phase 6 | Pending |
 | ANAL-02 | Phase 6 | Pending |
@@ -155,4 +155,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-21 after Phase 1 completion*
+*Last updated: 2026-01-21 after Phase 2 completion*
