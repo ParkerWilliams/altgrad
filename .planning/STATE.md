@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 3 of 6 (Model Integration)
-Plan: 1 of 3 in current phase
-Status: In progress
-Last activity: 2026-01-21 - Completed 03-01-PLAN.md (QuantizedLinear and Surgery)
+Plan: 2 of 2 in current phase
+Status: Phase 3 complete
+Last activity: 2026-01-21 - Completed 03-02-PLAN.md (Mixed Precision Config and Reproducibility)
 
-Progress: [#########.] 90% Phase 2-3 (9/10 plans through Phase 3)
+Progress: [##########] 100% Phase 3 complete (10/10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 13 min
-- Total execution time: 2.0 hours
+- Total plans completed: 10
+- Average duration: 12 min
+- Total execution time: 2.1 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [#########.] 90% Phase 2-3 (9/10 plans through Phase 3)
 |-------|-------|-------|----------|
 | 01-quantization-engine | 3 | 71 min | 24 min |
 | 02-baseline-validation | 5 | 38 min | 8 min |
-| 03-model-integration | 1 | 3 min | 3 min |
+| 03-model-integration | 2 | 9 min | 5 min |
 
 **Recent Trend:**
-- Last 3 plans: 8 min, 10 min, 3 min
+- Last 3 plans: 10 min, 3 min, 6 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -60,10 +60,13 @@ Recent decisions affecting current work:
 - 10M param model size (6 layers, 384 dim, 6 heads) for budget-constrained runs
 - Simulated FP8 quantization (quantize/dequantize simulation on CPU/GPU without FP8 tensor cores)
 - Local verification skipped for training runs - targeting H100 RunPod deployment
-- **NEW:** Skip patterns approach for weight tying preservation (skip lm_head)
-- **NEW:** In-place surgery modifies model directly (no copy)
-- **NEW:** Collect-then-modify pattern to avoid mutating during iteration
-- **NEW:** QuantizedLinear exposes weight/bias properties for optimizer compatibility
+- Skip patterns approach for weight tying preservation (skip lm_head)
+- In-place surgery modifies model directly (no copy)
+- Collect-then-modify pattern to avoid mutating during iteration
+- QuantizedLinear exposes weight/bias properties for optimizer compatibility
+- **NEW:** First-match-wins for LayerPrecisionRule pattern matching
+- **NEW:** format=None in config means keep layer in BF16 (not quantize)
+- **NEW:** quantize_model requires exactly one of format or config (mutex)
 
 ### Pending Todos
 
@@ -92,11 +95,11 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 03-01-PLAN.md (QuantizedLinear and Surgery)
+Stopped at: Completed 03-02-PLAN.md (Mixed Precision Config and Reproducibility)
 Resume file: None
 
 ## Next Steps
 
-1. **Continue Phase 3:** Execute 03-02-PLAN.md (FP32 Shadow Model)
+1. **Start Phase 4:** Execute experiment run plans
 2. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
-3. **Execute Experiments:** Run BF16 baseline and E5M2 FP8 experiments
+3. **Execute Experiments:** Run BF16 baseline and FP8 format comparison experiments
