@@ -507,7 +507,7 @@ class TestQuantizeModelWithConfig:
         # MLP should be QuantizedLinear with E5M2
         mlp_layer = model.transformer.h[0].mlp.c_fc
         assert isinstance(mlp_layer, QuantizedLinear), "MLP should be QuantizedLinear"
-        assert mlp_layer.fp8_format.name == "E5M2", "MLP format should be E5M2"
+        assert mlp_layer.format.name == "E5M2", "MLP format should be E5M2"
 
         # lm_head should stay as nn.Linear
         assert isinstance(model.lm_head, nn.Linear), "lm_head should stay nn.Linear"
@@ -539,12 +539,12 @@ class TestQuantizeModelWithConfig:
         # c_fc should have E5M2
         c_fc = model.transformer.h[0].mlp.c_fc
         assert isinstance(c_fc, QuantizedLinear)
-        assert c_fc.fp8_format.name == "E5M2"
+        assert c_fc.format.name == "E5M2"
 
         # c_proj should have E3M4
         c_proj = model.transformer.h[0].mlp.c_proj
         assert isinstance(c_proj, QuantizedLinear)
-        assert c_proj.fp8_format.name == "E3M4"
+        assert c_proj.format.name == "E3M4"
 
     def test_quantize_model_requires_format_or_config(self):
         """quantize_model should raise if neither format nor config provided."""

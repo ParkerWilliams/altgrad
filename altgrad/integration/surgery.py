@@ -10,6 +10,10 @@ Key functions:
 - quantize_model: Replace nn.Linear with QuantizedLinear
 - dequantize_model: Restore nn.Linear from QuantizedLinear wrappers
 
+Two modes of operation:
+1. Single format: Apply same FP8 format to all layers (except skip_patterns)
+2. Config-based: Apply per-layer formats based on QuantizationConfig rules
+
 Example:
     >>> from altgrad.integration import quantize_model, dequantize_model
     >>> from altgrad.quantization import E5M2
@@ -17,16 +21,24 @@ Example:
     >>> quantize_model(model, E5M2, skip_patterns=['lm_head'])
     >>> # ... train with quantized weights ...
     >>> dequantize_model(model)  # Restore for export
+
+    # Or with per-layer precision:
+    >>> from altgrad.integration import create_mixed_precision_config
+    >>> config = create_mixed_precision_config(attention_format=None, mlp_format='E5M2')
+    >>> quantize_model(model, config=config)
 """
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import torch.nn as nn
 
 from altgrad.quantization import FP8Format
 from altgrad.integration.wrapper import QuantizedLinear
+
+if TYPE_CHECKING:
+    from altgrad.integration.config import QuantizationConfig
 
 
 def _get_module_by_name(model: nn.Module, name: str) -> nn.Module:
@@ -79,10 +91,11 @@ def _should_skip(name: str, skip_patterns: List[str]) -> bool:
 
 def quantize_model(
     model: nn.Module,
-    format: FP8Format,
+    format: Optional[FP8Format] = None,
     skip_patterns: Optional[List[str]] = None,
     quantize_input: bool = False,
     history_len: int = 16,
+    config: Optional["QuantizationConfig"] = None,
 ) -> None:
     """Replace nn.Linear modules with QuantizedLinear wrappers.
 
@@ -90,23 +103,50 @@ def quantize_model(
     with QuantizedLinear wrappers that apply FP8 quantization during
     forward passes.
 
+    Two modes of operation:
+    1. Single format mode: Provide `format` to apply same FP8 format to all
+       layers (except those matching skip_patterns)
+    2. Config mode: Provide `config` for per-layer format selection based on
+       regex pattern matching
+
     IMPORTANT: For models with weight tying (e.g., GPT's wte/lm_head),
-    skip one of the tied modules to preserve the weight sharing.
+    use skip_patterns (single format mode) or set format=None in config
+    rules to preserve the weight sharing.
 
     Args:
         model: The model to quantize (modified in-place)
-        format: FP8 format for quantization (E5M2, E3M4, etc.)
-        skip_patterns: List of name substrings to skip (e.g., ['lm_head'])
-        quantize_input: Whether to also quantize layer inputs
-        history_len: Amax history length for dynamic scaling
+        format: FP8 format for all layers (mutually exclusive with config)
+        skip_patterns: Layer name patterns to skip (only used with format)
+        quantize_input: Whether to also quantize layer inputs (only with format)
+        history_len: Amax history length for dynamic scaling (only with format)
+        config: QuantizationConfig for per-layer precision (mutually exclusive with format)
+
+    Raises:
+        ValueError: If neither or both format and config are provided
 
     Example:
+        >>> # Single format mode
         >>> from altgrad.integration import quantize_model
         >>> from altgrad.quantization import E5M2
         >>> model = nn.Sequential(nn.Linear(10, 20), nn.ReLU(), nn.Linear(20, 5))
         >>> quantize_model(model, E5M2)
         >>> isinstance(model[0], QuantizedLinear)  # True
+
+        >>> # Config mode (per-layer precision)
+        >>> from altgrad.integration import create_mixed_precision_config
+        >>> config = create_mixed_precision_config(attention_format=None, mlp_format='E5M2')
+        >>> quantize_model(model, config=config)
     """
+    # Import here to avoid circular import
+    from altgrad.integration.config import QuantizationConfig
+
+    # Validate arguments: exactly one of format or config must be provided
+    if (format is None) == (config is None):
+        raise ValueError(
+            "Provide exactly one of 'format' or 'config'. "
+            "Use format=E5M2 for single format, or config=QuantizationConfig(...) for per-layer precision."
+        )
+
     if skip_patterns is None:
         skip_patterns = []
 
@@ -122,19 +162,26 @@ def quantize_model(
         if not isinstance(module, nn.Linear):
             continue
 
-        # Check skip patterns
-        if _should_skip(name, skip_patterns):
-            continue
-
-        modules_to_replace.append((name, module))
+        if config is not None:
+            # Config mode: use config to determine format for each layer
+            layer_format = config.get_format_for_layer(name)
+            if layer_format is None:
+                # None means keep in BF16, skip quantization
+                continue
+            modules_to_replace.append((name, module, layer_format, config.history_len, config.quantize_input))
+        else:
+            # Single format mode: check skip patterns
+            if _should_skip(name, skip_patterns):
+                continue
+            modules_to_replace.append((name, module, format, history_len, quantize_input))
 
     # Replace modules
-    for name, module in modules_to_replace:
+    for name, module, layer_format, hist_len, quant_input in modules_to_replace:
         wrapper = QuantizedLinear(
             module,
-            format,
-            quantize_input=quantize_input,
-            history_len=history_len,
+            layer_format,
+            quantize_input=quant_input,
+            history_len=hist_len,
         )
         _set_module_by_name(model, name, wrapper)
 
