@@ -66,11 +66,11 @@ Plans:
   2. quantize_model() replaces Linear layers post-init without modifying nanoGPT source
   3. Per-layer mixed precision config allows attention in BF16 while MLP uses FP8
   4. Format ablation runs produce identical seeds/ordering, varying only FP8 format
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md — QuantizedLinear wrapper and model surgery (INTG-01, INTG-02)
+- [ ] 03-02-PLAN.md — Per-layer mixed precision config and ablation reproducibility (INTG-03, EXPR-04)
 
 ### Phase 4: Custom Format Testing
 **Goal**: Systematic testing of exotic formats, documenting E7M0 failure modes as scientific negative result
@@ -127,7 +127,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Quantization Engine | 3/3 | Complete | 2026-01-21 |
 | 2. Baseline Validation | 5/5 | Complete | 2026-01-21 |
-| 3. Model Integration | 0/? | Not started | - |
+| 3. Model Integration | 0/2 | Not started | - |
 | 4. Custom Format Testing | 0/? | Not started | - |
 | 5. Manifold-Aware Optimizer | 0/? | Not started | - |
 | 6. Analysis & Documentation | 0/? | Not started | - |
