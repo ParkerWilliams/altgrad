@@ -9,17 +9,17 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Quantization Engine
 
-- [ ] **QUANT-01**: FP8 format registry supporting E0M7, E1M6, E3M4, E5M2, E7M0 specifications
-- [ ] **QUANT-02**: Quantize/dequantize functions with Straight-Through Estimator gradient override
-- [ ] **QUANT-03**: Per-tensor scaling with delayed amax tracking (history buffer)
-- [ ] **QUANT-04**: Format-specific transfer functions (bit-index <-> real value)
+- [x] **QUANT-01**: FP8 format registry supporting E0M7, E1M6, E3M4, E5M2, E7M0 specifications
+- [x] **QUANT-02**: Quantize/dequantize functions with Straight-Through Estimator gradient override
+- [x] **QUANT-03**: Per-tensor scaling with delayed amax tracking (history buffer)
+- [x] **QUANT-04**: Format-specific transfer functions (bit-index <-> real value)
 
 ### Stability Monitoring
 
 - [ ] **STAB-01**: Per-tensor overflow/underflow counters (forward, backward, optimizer)
 - [ ] **STAB-02**: NaN/Inf detection with configurable early stopping
 - [ ] **STAB-03**: Dynamic range tracking (amax moving average)
-- [ ] **STAB-04**: Bit-Stall counter (tracks when `round(b + delta_b) == b` despite non-zero gradient)
+- [x] **STAB-04**: Bit-Stall counter (tracks when `round(b + delta_b) == b` despite non-zero gradient)
 - [ ] **STAB-05**: Partition-relative gradient clipping (clip based on format's dynamic range)
 - [ ] **STAB-06**: Emergency mantissa shift (increase M bits on persistent NaN/high stall rate)
 
@@ -109,14 +109,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QUANT-01 | Phase 1 | Pending |
-| QUANT-02 | Phase 1 | Pending |
-| QUANT-03 | Phase 1 | Pending |
-| QUANT-04 | Phase 1 | Pending |
+| QUANT-01 | Phase 1 | Complete |
+| QUANT-02 | Phase 1 | Complete |
+| QUANT-03 | Phase 1 | Complete |
+| QUANT-04 | Phase 1 | Complete |
 | STAB-01 | Phase 2 | Pending |
 | STAB-02 | Phase 2 | Pending |
 | STAB-03 | Phase 2 | Pending |
-| STAB-04 | Phase 1 | Pending |
+| STAB-04 | Phase 1 | Complete |
 | STAB-05 | Phase 4 | Pending |
 | STAB-06 | Phase 4 | Pending |
 | METR-01 | Phase 2 | Pending |
@@ -155,4 +155,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-20 after roadmap creation*
+*Last updated: 2026-01-21 after Phase 1 completion*

@@ -12,7 +12,7 @@ AltGrad progresses from isolated quantization mechanics through validated baseli
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Quantization Engine** - Standalone FP8 format implementations with STE gradient flow
+- [x] **Phase 1: Quantization Engine** - Standalone FP8 format implementations with STE gradient flow
 - [ ] **Phase 2: Baseline Validation** - BF16 baseline and standard FP8 training with monitoring infrastructure
 - [ ] **Phase 3: Model Integration** - QuantizedLinear wrappers and nanoGPT surgery without forking
 - [ ] **Phase 4: Custom Format Testing** - E1M6, E3M4, E7M0 experiments (E7M0 as negative result)
@@ -34,9 +34,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — FP8 format registry with transfer functions (TDD)
-- [ ] 01-02-PLAN.md — STE quantize/dequantize operations (TDD)
-- [ ] 01-03-PLAN.md — Dynamic scaling and bit-stall detection
+- [x] 01-01-PLAN.md — FP8 format registry with transfer functions (TDD)
+- [x] 01-02-PLAN.md — STE quantize/dequantize operations (TDD)
+- [x] 01-03-PLAN.md — Dynamic scaling and bit-stall detection
 
 ### Phase 2: Baseline Validation
 **Goal**: Verified BF16 baseline and standard FP8 training with comprehensive monitoring infrastructure
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Quantization Engine | 0/3 | Planned | - |
+| 1. Quantization Engine | 3/3 | Complete | 2026-01-21 |
 | 2. Baseline Validation | 0/? | Not started | - |
 | 3. Model Integration | 0/? | Not started | - |
 | 4. Custom Format Testing | 0/? | Not started | - |
@@ -132,4 +132,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-01-20*
+*Last updated: 2026-01-21*
