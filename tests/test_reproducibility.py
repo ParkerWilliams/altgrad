@@ -214,8 +214,9 @@ class TestAblationReproducibility:
         model1.eval()
         model2.eval()
         with torch.no_grad():
-            out1 = model1(x)
-            out2 = model2(x)
+            # GPT.forward returns (logits, loss) tuple; loss is None without targets
+            out1, _ = model1(x)
+            out2, _ = model2(x)
 
         # Outputs should differ because E5M2 and E3M4 quantize differently
         assert not torch.allclose(out1, out2, atol=1e-3), \
