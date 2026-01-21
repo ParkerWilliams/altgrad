@@ -15,11 +15,22 @@ Operations:
     quantize: Convert FP32 tensor to simulated FP8 with STE gradient
     dequantize: Apply scale multiplication with gradient passthrough
 
+Scaling:
+    compute_scale: Compute scale factor from amax and format
+    AmaxHistory: Track tensor ranges over batches for stable scaling
+
+Diagnostics:
+    detect_bit_stall: Detect quantized updates that round to zero
+    BitStallDetector: Accumulate stall statistics over training
+
 Example:
-    >>> from altgrad.quantization import E5M2, quantize
+    >>> from altgrad.quantization import E5M2, quantize, AmaxHistory, compute_scale
     >>> import torch
     >>> x = torch.randn(10, requires_grad=True)
-    >>> y = quantize(x, E5M2, torch.tensor(1.0))
+    >>> history = AmaxHistory()
+    >>> history.update(x)
+    >>> scale = compute_scale(history.get_amax(), E5M2)
+    >>> y = quantize(x, E5M2, torch.tensor(scale))
     >>> y.sum().backward()
     >>> x.grad  # All ones due to STE
 """
@@ -39,6 +50,15 @@ from altgrad.quantization.ops import (
     quantize,
     dequantize,
 )
+from altgrad.quantization.scaling import (
+    compute_scale,
+    AmaxHistory,
+    ScalingConfig,
+)
+from altgrad.quantization.diagnostics import (
+    BitStallDetector,
+    detect_bit_stall,
+)
 
 __all__ = [
     # Formats
@@ -54,4 +74,11 @@ __all__ = [
     "DequantizeFunc",
     "quantize",
     "dequantize",
+    # Scaling
+    "compute_scale",
+    "AmaxHistory",
+    "ScalingConfig",
+    # Diagnostics
+    "BitStallDetector",
+    "detect_bit_stall",
 ]
