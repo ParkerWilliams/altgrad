@@ -48,12 +48,14 @@ Plans:
   3. Gradient statistics (norms, SNR, dead neurons, zero-update fraction) track per layer
   4. BF16 baseline comparison plots generate automatically after each run
   5. Checkpoint saves enable restart from any point within budget constraints
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md — EurLex data preparation (Wave 1)
+- [ ] 02-02-PLAN.md — Training infrastructure: config, metrics, checkpoints, W&B (Wave 1)
+- [ ] 02-03-PLAN.md — nanoGPT model and trainer with FP32 shadow (Wave 2)
+- [ ] 02-04-PLAN.md — BF16 baseline experiment (Wave 3)
+- [ ] 02-05-PLAN.md — E5M2 FP8 experiment with gradient comparison (Wave 4)
 
 ### Phase 3: Model Integration
 **Goal**: QuantizedLinear wrappers inject quantization into nanoGPT without forking, supporting per-layer mixed precision
@@ -124,7 +126,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Quantization Engine | 3/3 | Complete | 2026-01-21 |
-| 2. Baseline Validation | 0/? | Not started | - |
+| 2. Baseline Validation | 0/5 | Planned | - |
 | 3. Model Integration | 0/? | Not started | - |
 | 4. Custom Format Testing | 0/? | Not started | - |
 | 5. Manifold-Aware Optimizer | 0/? | Not started | - |
