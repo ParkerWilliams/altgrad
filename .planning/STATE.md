@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-01-20)
 
 **Core value:** Evidence-backed answer to which 8-bit floating-point format most benefits from geometry-aware updates, and why.
-**Current focus:** Phase 2 - Baseline Validation
+**Current focus:** Phase 2 - Baseline Validation (COMPLETE - ready for RunPod deployment)
 
 ## Current Position
 
-Phase: 2 of 6 (Baseline Validation)
-Plan: 4 of 5 in current phase
-Status: In progress
-Last activity: 2026-01-21 - Completed 02-04-PLAN.md (BF16 Baseline Experiment)
+Phase: 2 of 6 (Baseline Validation) - COMPLETE
+Plan: 5 of 5 in current phase
+Status: Phase complete (pending RunPod execution)
+Last activity: 2026-01-21 - Completed 02-05-PLAN.md (E5M2 FP8 Experiment)
 
-Progress: [#######...] 80%
+Progress: [########..] 100% Phase 2
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 15 min
-- Total execution time: 1.7 hours
+- Total plans completed: 8
+- Average duration: 14 min
+- Total execution time: 1.9 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-quantization-engine | 3 | 71 min | 24 min |
-| 02-baseline-validation | 4 | 28 min | 7 min |
+| 02-baseline-validation | 5 | 38 min | 8 min |
 
 **Recent Trend:**
-- Last 3 plans: 6 min, 6 min, 8 min
+- Last 3 plans: 6 min, 8 min, 10 min
 - Trend: Stable, fast execution
 
 *Updated after each plan completion*
@@ -57,10 +57,16 @@ Recent decisions affecting current work:
 - **NEW:** SNR = |mean| / std for gradient signal quality measurement
 - **NEW:** Experiment runner pattern: `python experiments/run_experiment.py <config>`
 - **NEW:** 10M param model size (6 layers, 384 dim, 6 heads) for budget-constrained runs
+- **NEW:** Simulated FP8 quantization (quantize/dequantize simulation on CPU/GPU without FP8 tensor cores)
+- **NEW:** Local verification skipped for training runs - targeting H100 RunPod deployment
 
 ### Pending Todos
 
-None yet.
+**RunPod Execution:**
+1. Upload code to H100 RunPod instance
+2. Run BF16 baseline: `python experiments/run_experiment.py experiments/configs/bf16_baseline.yaml`
+3. Run E5M2 FP8: `python experiments/run_experiment.py experiments/configs/e5m2_fp8.yaml`
+4. Generate comparison summary from W&B results
 
 ### Blockers/Concerns
 
@@ -81,5 +87,11 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 02-04-PLAN.md (BF16 Baseline Experiment)
+Stopped at: Completed 02-05-PLAN.md (E5M2 FP8 Experiment) - Phase 2 complete
 Resume file: None
+
+## Next Steps
+
+1. **Deploy to RunPod:** Upload codebase to H100 instance
+2. **Execute Experiments:** Run BF16 baseline and E5M2 FP8 experiments
+3. **Phase 3 Planning:** Begin Model Integration phase (QuantizedLinear wrappers)

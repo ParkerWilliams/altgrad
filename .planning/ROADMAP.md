@@ -13,7 +13,7 @@ AltGrad progresses from isolated quantization mechanics through validated baseli
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Quantization Engine** - Standalone FP8 format implementations with STE gradient flow
-- [ ] **Phase 2: Baseline Validation** - BF16 baseline and standard FP8 training with monitoring infrastructure
+- [x] **Phase 2: Baseline Validation** - BF16 baseline and standard FP8 training with monitoring infrastructure
 - [ ] **Phase 3: Model Integration** - QuantizedLinear wrappers and nanoGPT surgery without forking
 - [ ] **Phase 4: Custom Format Testing** - E1M6, E3M4, E7M0 experiments (E7M0 as negative result)
 - [ ] **Phase 5: Manifold-Aware Optimizer** - Stiffness-preconditioned updates and geometry diagnostics
@@ -51,11 +51,11 @@ Plans:
 **Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 02-01-PLAN.md — EurLex data preparation (Wave 1)
-- [ ] 02-02-PLAN.md — Training infrastructure: config, metrics, checkpoints, W&B (Wave 1)
-- [ ] 02-03-PLAN.md — nanoGPT model and trainer with FP32 shadow (Wave 2)
-- [ ] 02-04-PLAN.md — BF16 baseline experiment (Wave 3)
-- [ ] 02-05-PLAN.md — E5M2 FP8 experiment with gradient comparison (Wave 4)
+- [x] 02-01-PLAN.md — EurLex data preparation (Wave 1)
+- [x] 02-02-PLAN.md — Training infrastructure: config, metrics, checkpoints, W&B (Wave 1)
+- [x] 02-03-PLAN.md — nanoGPT model and trainer with FP32 shadow (Wave 2)
+- [x] 02-04-PLAN.md — BF16 baseline experiment (Wave 3)
+- [x] 02-05-PLAN.md — E5M2 FP8 experiment with gradient comparison (Wave 4)
 
 ### Phase 3: Model Integration
 **Goal**: QuantizedLinear wrappers inject quantization into nanoGPT without forking, supporting per-layer mixed precision
@@ -126,7 +126,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Quantization Engine | 3/3 | Complete | 2026-01-21 |
-| 2. Baseline Validation | 0/5 | Planned | - |
+| 2. Baseline Validation | 5/5 | Complete | 2026-01-21 |
 | 3. Model Integration | 0/? | Not started | - |
 | 4. Custom Format Testing | 0/? | Not started | - |
 | 5. Manifold-Aware Optimizer | 0/? | Not started | - |
