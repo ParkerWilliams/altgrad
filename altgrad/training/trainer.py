@@ -341,14 +341,16 @@ class Trainer:
         # Learning rate (from first param group)
         train_metrics["learning_rate"] = self.optimizer.param_groups[0]["lr"]
 
+        # Console logging (always, for visibility)
+        loss = train_metrics.get("loss", 0)
+        ppl = train_metrics.get("perplexity", 0)
+        grad_norm = train_metrics.get("grad_norm", 0)
+        tps = train_metrics.get("throughput_tokens_sec", 0)
+        print(f"Step {step}: loss={loss:.4f}, ppl={ppl:.2f}, grad_norm={grad_norm:.4f}, tok/s={tps:.0f}")
+
         # Log to W&B
         if self.tracker is not None:
             self.tracker.log_step(step, train_metrics)
-        else:
-            # Console logging
-            loss = train_metrics.get("loss", 0)
-            ppl = train_metrics.get("perplexity", 0)
-            print(f"Step {step}: loss={loss:.4f}, ppl={ppl:.2f}")
 
     def resume(self, checkpoint_path: str) -> None:
         """Resume training from checkpoint.
