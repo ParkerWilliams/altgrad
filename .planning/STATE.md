@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 2 of 6 (Baseline Validation)
-Plan: 3 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-21 - Completed 02-03-PLAN.md (Model and Trainer)
+Last activity: 2026-01-21 - Completed 02-04-PLAN.md (BF16 Baseline Experiment)
 
-Progress: [######....] 75%
+Progress: [#######...] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 16 min
-- Total execution time: 1.6 hours
+- Total plans completed: 7
+- Average duration: 15 min
+- Total execution time: 1.7 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-quantization-engine | 3 | 71 min | 24 min |
-| 02-baseline-validation | 3 | 20 min | 7 min |
+| 02-baseline-validation | 4 | 28 min | 7 min |
 
 **Recent Trend:**
-- Last 3 plans: 8 min, 6 min, 6 min
+- Last 3 plans: 6 min, 6 min, 8 min
 - Trend: Stable, fast execution
 
 *Updated after each plan completion*
@@ -55,6 +55,8 @@ Recent decisions affecting current work:
 - **NEW:** CheckpointManager keeps best separately from rotation
 - **NEW:** Flash Attention via scaled_dot_product_attention on PyTorch 2.0+
 - **NEW:** SNR = |mean| / std for gradient signal quality measurement
+- **NEW:** Experiment runner pattern: `python experiments/run_experiment.py <config>`
+- **NEW:** 10M param model size (6 layers, 384 dim, 6 heads) for budget-constrained runs
 
 ### Pending Todos
 
@@ -79,5 +81,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-21
-Stopped at: Completed 02-03-PLAN.md (Model and Trainer)
+Stopped at: Completed 02-04-PLAN.md (BF16 Baseline Experiment)
 Resume file: None
