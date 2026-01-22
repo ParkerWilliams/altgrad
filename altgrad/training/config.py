@@ -104,6 +104,19 @@ class TrainConfig:
     dead_neuron_threshold: float = 1e-8
     dead_neuron_window: int = 100
 
+    # Stability interventions (Phase 4)
+    enable_partition_clipping: bool = False  # STAB-05: format-aware clipping
+    partition_clip_base: float = 1.0  # Base clip threshold before scaling
+    enable_emergency_shift: bool = False  # STAB-06: format fallback
+    emergency_shift_nan_patience: int = 3  # NaN batches before shift
+    emergency_shift_stall_threshold: float = 0.5  # Bit-stall rate trigger
+
+    # Diagnostic sampling (Phase 4)
+    diagnostic_interval: int = 50  # Steps between advanced diagnostics
+    log_stiffness: bool = False  # Log stiffness field statistics
+    log_grid_alignment: bool = False  # Log grid alignment stats
+    log_ulp: bool = False  # Log ULP movement stats
+
     # Logging intervals
     log_interval: int = 1
     eval_interval: int = 100
@@ -164,6 +177,8 @@ def load_config(path: str) -> TrainConfig:
         "bit_stall_threshold",
         "overflow_threshold",
         "dead_neuron_threshold",
+        "partition_clip_base",
+        "emergency_shift_stall_threshold",
     ]
     for field in float_fields:
         if field in config_dict and config_dict[field] is not None:
