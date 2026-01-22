@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 4 of 6 (Custom Format Testing)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-22 - Completed 04-01-PLAN.md (Stability Interventions)
+Last activity: 2026-01-22 - Completed 04-02-PLAN.md (Advanced Diagnostics)
 
-Progress: [###########-] 92% (11/12 plans through Phase 4)
+Progress: [############] 100% (12/12 plans through Phase 4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 11 min
-- Total execution time: 2.2 hours
+- Total execution time: 2.3 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [###########-] 92% (11/12 plans through Phase 4)
 | 01-quantization-engine | 3 | 71 min | 24 min |
 | 02-baseline-validation | 5 | 38 min | 8 min |
 | 03-model-integration | 2 | 9 min | 5 min |
-| 04-custom-format-testing | 1 | 3 min | 3 min |
+| 04-custom-format-testing | 2 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 3 plans: 3 min, 6 min, 3 min
+- Last 3 plans: 3 min, 3 min, 5 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -68,10 +68,13 @@ Recent decisions affecting current work:
 - First-match-wins for LayerPrecisionRule pattern matching
 - format=None in config means keep layer in BF16 (not quantize)
 - quantize_model requires exactly one of format or config (mutex)
-- **NEW:** E5M2_MAX=57344 as baseline for partition-relative threshold scaling
-- **NEW:** 1% overflow threshold for clipper activation
-- **NEW:** 3 consecutive NaNs or >50% stall rate triggers emergency format shift
-- **NEW:** Fallback chain: E7M0->E5M2, E1M6->E3M4, E0M7->E3M4, E3M4->E5M2, E5M2->None
+- E5M2_MAX=57344 as baseline for partition-relative threshold scaling
+- 1% overflow threshold for clipper activation
+- 3 consecutive NaNs or >50% stall rate triggers emergency format shift
+- Fallback chain: E7M0->E5M2, E1M6->E3M4, E0M7->E3M4, E3M4->E5M2, E5M2->None
+- **NEW:** E0M7 constant 1/128 stiffness (uniform grid spacing)
+- **NEW:** torch.nextafter for IEEE 754 compliant ULP computation
+- **NEW:** NaN stiffness for zero weights (undefined)
 
 ### Pending Todos
 
@@ -100,11 +103,11 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 04-01-PLAN.md (Stability Interventions)
+Stopped at: Completed 04-02-PLAN.md (Advanced Diagnostics)
 Resume file: None
 
 ## Next Steps
 
-1. **Continue Phase 4:** Execute 04-02-PLAN.md (Advanced Diagnostics)
-2. **Complete Phase 4:** Execute 04-03-PLAN.md (Exotic Format Runner)
+1. **Complete Phase 4:** Execute 04-03-PLAN.md (Exotic Format Runner)
+2. **Start Phase 5:** Experiment execution plans
 3. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
