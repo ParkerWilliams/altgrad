@@ -1,0 +1,47 @@
+# E0M7 Fixed-Point Experiment
+# Pure fixed-point format: 7 mantissa bits, no exponent
+# Range: [-127/128, 127/128] with uniform grid spacing 1/128
+
+# Model architecture (IDENTICAL to baseline)
+n_layer: 6
+n_head: 6
+n_embd: 384
+block_size: 256
+vocab_size: 50257
+dropout: 0.0
+
+# Training (SHORT for format comparison)
+batch_size: 12
+learning_rate: 6e-4
+max_steps: 500
+warmup_steps: 100
+grad_clip: 1.0
+
+# Precision - E0M7 fixed-point
+use_fp8: true
+fp8_format: "E0M7"
+use_shadow: true
+
+# Checkpointing
+checkpoint_interval: 100
+checkpoint_dir: "checkpoints/e0m7_uniform"
+max_checkpoints: 3
+
+# Stability thresholds
+nan_patience: 10
+bit_stall_threshold: 0.5
+overflow_threshold: 0.01
+dead_neuron_threshold: 1.0e-8
+dead_neuron_window: 100
+
+# Logging
+log_interval: 1
+eval_interval: 100
+
+# W&B
+project: "altgrad"
+run_name: "e0m7-uniform"
+tags: ["fp8", "e0m7", "fixed-point", "format-comparison"]
+
+# Reproducibility (SAME SEED for fair comparison)
+seed: 42

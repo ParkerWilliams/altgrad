@@ -1,0 +1,47 @@
+# E7M0 Powers-of-2 Experiment (High Failure Risk)
+# Extreme format: 7 exponent bits, 0 mantissa bits
+# Values: powers of 2 only, expected to fail
+
+# Model architecture (IDENTICAL to baseline)
+n_layer: 6
+n_head: 6
+n_embd: 384
+block_size: 256
+vocab_size: 50257
+dropout: 0.0
+
+# Training (SHORT for format comparison)
+batch_size: 12
+learning_rate: 6e-4
+max_steps: 500
+warmup_steps: 100
+grad_clip: 1.0
+
+# Precision - E7M0 powers-of-2
+use_fp8: true
+fp8_format: "E7M0"
+use_shadow: true
+
+# Checkpointing
+checkpoint_interval: 100
+checkpoint_dir: "checkpoints/e7m0_uniform"
+max_checkpoints: 3
+
+# Stability thresholds
+nan_patience: 10
+bit_stall_threshold: 0.5
+overflow_threshold: 0.01
+dead_neuron_threshold: 1.0e-8
+dead_neuron_window: 100
+
+# Logging
+log_interval: 1
+eval_interval: 100
+
+# W&B
+project: "altgrad"
+run_name: "e7m0-uniform"
+tags: ["fp8", "e7m0", "powers-of-2", "format-comparison", "high-risk"]
+
+# Reproducibility (SAME SEED for fair comparison)
+seed: 42

@@ -1,0 +1,47 @@
+# E1M6 Two-Scale Experiment
+# Two-scale format: 1 exponent bit, 6 mantissa bits
+# Range: ~[-3.9, 3.9] with two precision regimes
+
+# Model architecture (IDENTICAL to baseline)
+n_layer: 6
+n_head: 6
+n_embd: 384
+block_size: 256
+vocab_size: 50257
+dropout: 0.0
+
+# Training (SHORT for format comparison)
+batch_size: 12
+learning_rate: 6e-4
+max_steps: 500
+warmup_steps: 100
+grad_clip: 1.0
+
+# Precision - E1M6 two-scale
+use_fp8: true
+fp8_format: "E1M6"
+use_shadow: true
+
+# Checkpointing
+checkpoint_interval: 100
+checkpoint_dir: "checkpoints/e1m6_uniform"
+max_checkpoints: 3
+
+# Stability thresholds
+nan_patience: 10
+bit_stall_threshold: 0.5
+overflow_threshold: 0.01
+dead_neuron_threshold: 1.0e-8
+dead_neuron_window: 100
+
+# Logging
+log_interval: 1
+eval_interval: 100
+
+# W&B
+project: "altgrad"
+run_name: "e1m6-uniform"
+tags: ["fp8", "e1m6", "two-scale", "format-comparison"]
+
+# Reproducibility (SAME SEED for fair comparison)
+seed: 42
