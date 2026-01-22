@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-20)
 
 **Core value:** Evidence-backed answer to which 8-bit floating-point format most benefits from geometry-aware updates, and why.
-**Current focus:** Phase 4 - Custom Format Testing (in progress)
+**Current focus:** Phase 4 - Custom Format Testing (COMPLETE)
 
 ## Current Position
 
 Phase: 4 of 6 (Custom Format Testing)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-01-22 - Completed 04-02-PLAN.md (Advanced Diagnostics)
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-01-22 - Completed 04-03-PLAN.md (Format Experiment Runner)
 
-Progress: [############] 100% (12/12 plans through Phase 4)
+Progress: [#############] 100% (13/13 plans through Phase 4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 11 min
-- Total execution time: 2.3 hours
+- Total plans completed: 13
+- Average duration: 10 min
+- Total execution time: 2.4 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [############] 100% (12/12 plans through Phase 4)
 | 01-quantization-engine | 3 | 71 min | 24 min |
 | 02-baseline-validation | 5 | 38 min | 8 min |
 | 03-model-integration | 2 | 9 min | 5 min |
-| 04-custom-format-testing | 2 | 8 min | 4 min |
+| 04-custom-format-testing | 3 | 12 min | 4 min |
 
 **Recent Trend:**
-- Last 3 plans: 3 min, 3 min, 5 min
+- Last 3 plans: 3 min, 5 min, 4 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -72,17 +72,21 @@ Recent decisions affecting current work:
 - 1% overflow threshold for clipper activation
 - 3 consecutive NaNs or >50% stall rate triggers emergency format shift
 - Fallback chain: E7M0->E5M2, E1M6->E3M4, E0M7->E3M4, E3M4->E5M2, E5M2->None
-- **NEW:** E0M7 constant 1/128 stiffness (uniform grid spacing)
-- **NEW:** torch.nextafter for IEEE 754 compliant ULP computation
-- **NEW:** NaN stiffness for zero weights (undefined)
+- E0M7 constant 1/128 stiffness (uniform grid spacing)
+- torch.nextafter for IEEE 754 compliant ULP computation
+- NaN stiffness for zero weights (undefined)
+- **NEW:** 500 steps for all format comparison configs (valid comparison)
+- **NEW:** Self-contained runner creates own Trainer (not extends)
 
 ### Pending Todos
 
 **RunPod Execution:**
 1. Upload code to H100 RunPod instance
 2. Run BF16 baseline: `python experiments/run_experiment.py experiments/configs/bf16_baseline.yaml`
-3. Run E5M2 FP8: `python experiments/run_experiment.py experiments/configs/e5m2_fp8.yaml`
-4. Generate comparison summary from W&B results
+3. Run E5M2 short: `python experiments/run_experiment.py experiments/configs/e5m2_short.yaml`
+4. Run format experiments: e3m4_uniform, e1m6_uniform, e0m7_uniform, e7m0_uniform
+5. Collect W&B logs and failure reports
+6. Generate format comparison analysis
 
 ### Blockers/Concerns
 
@@ -103,11 +107,12 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 04-02-PLAN.md (Advanced Diagnostics)
+Stopped at: Completed 04-03-PLAN.md (Format Experiment Runner)
 Resume file: None
 
 ## Next Steps
 
-1. **Complete Phase 4:** Execute 04-03-PLAN.md (Exotic Format Runner)
-2. **Start Phase 5:** Experiment execution plans
-3. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
+1. **Start Phase 5:** Experiment execution plans (requires H100 RunPod)
+2. **Deploy to RunPod:** Upload codebase to H100 instance
+3. **Run format experiments:** Use FormatExperimentRunner with new configs
+4. **Analyze results:** Compare format behavior, document failure modes
