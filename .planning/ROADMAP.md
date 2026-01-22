@@ -82,12 +82,12 @@ Plans:
   3. E7M0 failure mode documented: exact step where training collapses, gradient sparsity, zero-update regions
   4. Partition-relative gradient clipping adapts to each format's dynamic range
   5. Emergency mantissa shift triggers correctly on persistent NaN/high stall rates
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
+- [ ] 04-01-PLAN.md — Stability interventions: partition-relative clipping (STAB-05), emergency mantissa shift (STAB-06)
+- [ ] 04-02-PLAN.md — Advanced diagnostics: stiffness field (DIAG-01), grid alignment (DIAG-02), gradient-stiffness correlation (DIAG-03), ULP statistics (DIAG-04)
+- [ ] 04-03-PLAN.md — Format experiment configs (E0M7, E1M6, E3M4, E7M0) and FormatExperimentRunner
 
 ### Phase 5: Manifold-Aware Optimizer
 **Goal**: Stiffness-preconditioned optimizer that treats FP8 as geometric manifold, validated on viable formats
@@ -128,7 +128,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Quantization Engine | 3/3 | Complete | 2026-01-21 |
 | 2. Baseline Validation | 5/5 | Complete | 2026-01-21 |
 | 3. Model Integration | 2/2 | Complete | 2026-01-21 |
-| 4. Custom Format Testing | 0/? | Not started | - |
+| 4. Custom Format Testing | 0/3 | Ready | - |
 | 5. Manifold-Aware Optimizer | 0/? | Not started | - |
 | 6. Analysis & Documentation | 0/? | Not started | - |
 
