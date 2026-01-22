@@ -59,6 +59,10 @@ from altgrad.quantization.diagnostics import (
     BitStallDetector,
     detect_bit_stall,
 )
+from altgrad.quantization.stability import (
+    PartitionRelativeClipper,
+    EmergencyMantissaShift,
+)
 
 __all__ = [
     # Formats
@@ -81,4 +85,7 @@ __all__ = [
     # Diagnostics
     "BitStallDetector",
     "detect_bit_stall",
+    # Stability
+    "PartitionRelativeClipper",
+    "EmergencyMantissaShift",
 ]
