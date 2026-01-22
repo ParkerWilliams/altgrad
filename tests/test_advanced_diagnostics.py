@@ -142,14 +142,20 @@ class TestGridAlignment:
         assert stats["on_grid_frac"] >= 0 and stats["on_grid_frac"] <= 1
 
     def test_grid_alignment_clamped_values(self):
-        """Test that values outside format range clamp to boundary."""
-        # E5M2 max is about 57344.0
-        w = torch.tensor([100000.0])
-        scale = torch.tensor(1.0)
-        error = grid_alignment_error(w, E5M2, scale)
+        """Test that values outside format range clamp or quantize to boundary.
 
-        # Should not be NaN or Inf
+        For E5M2 (with has_inf=True), overflow goes to inf, so error is inf.
+        For formats without inf, overflow clamps to max representable.
+        This test uses E3M4 which doesn't have inf support.
+        """
+        # E3M4 max is about 124.0, and it clamps (no inf support)
+        w = torch.tensor([1000.0])
+        scale = torch.tensor(1.0)
+        error = grid_alignment_error(w, E3M4, scale)
+
+        # Should not be NaN (clamps to max finite value)
         assert not math.isnan(error[0].item())
+        # Error should be finite (difference between 1000 and max representable)
         assert not math.isinf(error[0].item())
 
 

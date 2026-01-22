@@ -63,6 +63,11 @@ from altgrad.quantization.stability import (
     PartitionRelativeClipper,
     EmergencyMantissaShift,
 )
+from altgrad.quantization.advanced_diagnostics import (
+    compute_stiffness_field,
+    grid_alignment_error,
+    grid_alignment_statistics,
+)
 
 __all__ = [
     # Formats
@@ -88,4 +93,8 @@ __all__ = [
     # Stability
     "PartitionRelativeClipper",
     "EmergencyMantissaShift",
+    # Advanced Diagnostics
+    "compute_stiffness_field",
+    "grid_alignment_error",
+    "grid_alignment_statistics",
 ]
