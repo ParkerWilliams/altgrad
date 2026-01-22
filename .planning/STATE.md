@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-20)
 
 **Core value:** Evidence-backed answer to which 8-bit floating-point format most benefits from geometry-aware updates, and why.
-**Current focus:** Phase 3 - Model Integration (in progress)
+**Current focus:** Phase 4 - Custom Format Testing (in progress)
 
 ## Current Position
 
-Phase: 3 of 6 (Model Integration)
-Plan: 2 of 2 in current phase
-Status: Phase 3 complete
-Last activity: 2026-01-21 - Completed 03-02-PLAN.md (Mixed Precision Config and Reproducibility)
+Phase: 4 of 6 (Custom Format Testing)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-22 - Completed 04-01-PLAN.md (Stability Interventions)
 
-Progress: [##########] 100% Phase 3 complete (10/10 plans)
+Progress: [###########-] 92% (11/12 plans through Phase 4)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 12 min
-- Total execution time: 2.1 hours
+- Total plans completed: 11
+- Average duration: 11 min
+- Total execution time: 2.2 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [##########] 100% Phase 3 complete (10/10 plans)
 | 01-quantization-engine | 3 | 71 min | 24 min |
 | 02-baseline-validation | 5 | 38 min | 8 min |
 | 03-model-integration | 2 | 9 min | 5 min |
+| 04-custom-format-testing | 1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 3 plans: 10 min, 3 min, 6 min
+- Last 3 plans: 3 min, 6 min, 3 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -64,9 +65,13 @@ Recent decisions affecting current work:
 - In-place surgery modifies model directly (no copy)
 - Collect-then-modify pattern to avoid mutating during iteration
 - QuantizedLinear exposes weight/bias properties for optimizer compatibility
-- **NEW:** First-match-wins for LayerPrecisionRule pattern matching
-- **NEW:** format=None in config means keep layer in BF16 (not quantize)
-- **NEW:** quantize_model requires exactly one of format or config (mutex)
+- First-match-wins for LayerPrecisionRule pattern matching
+- format=None in config means keep layer in BF16 (not quantize)
+- quantize_model requires exactly one of format or config (mutex)
+- **NEW:** E5M2_MAX=57344 as baseline for partition-relative threshold scaling
+- **NEW:** 1% overflow threshold for clipper activation
+- **NEW:** 3 consecutive NaNs or >50% stall rate triggers emergency format shift
+- **NEW:** Fallback chain: E7M0->E5M2, E1M6->E3M4, E0M7->E3M4, E3M4->E5M2, E5M2->None
 
 ### Pending Todos
 
@@ -94,12 +99,12 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-21
-Stopped at: Completed 03-02-PLAN.md (Mixed Precision Config and Reproducibility)
+Last session: 2026-01-22
+Stopped at: Completed 04-01-PLAN.md (Stability Interventions)
 Resume file: None
 
 ## Next Steps
 
-1. **Start Phase 4:** Execute experiment run plans
-2. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
-3. **Execute Experiments:** Run BF16 baseline and FP8 format comparison experiments
+1. **Continue Phase 4:** Execute 04-02-PLAN.md (Advanced Diagnostics)
+2. **Complete Phase 4:** Execute 04-03-PLAN.md (Exotic Format Runner)
+3. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
