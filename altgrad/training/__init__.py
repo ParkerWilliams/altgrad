@@ -37,6 +37,12 @@ from altgrad.training.callbacks import WandbTracker
 from altgrad.training.model import GPT, GPTConfig
 from altgrad.training.shadow import FP32ShadowModel
 from altgrad.training.trainer import Trainer
+from altgrad.training.format_runner import (
+    FormatExperimentRunner,
+    ExperimentResult,
+    DiagnosticSnapshot,
+    run_format_experiment,
+)
 
 __all__ = [
     # Model
@@ -63,4 +69,9 @@ __all__ = [
     "CheckpointManager",
     # Callbacks
     "WandbTracker",
+    # Format experiment runner
+    "FormatExperimentRunner",
+    "ExperimentResult",
+    "DiagnosticSnapshot",
+    "run_format_experiment",
 ]
