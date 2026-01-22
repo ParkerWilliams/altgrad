@@ -67,6 +67,9 @@ from altgrad.quantization.advanced_diagnostics import (
     compute_stiffness_field,
     grid_alignment_error,
     grid_alignment_statistics,
+    compute_ulp_distance,
+    ulp_statistics,
+    gradient_stiffness_correlation,
 )
 
 __all__ = [
@@ -97,4 +100,7 @@ __all__ = [
     "compute_stiffness_field",
     "grid_alignment_error",
     "grid_alignment_statistics",
+    "compute_ulp_distance",
+    "ulp_statistics",
+    "gradient_stiffness_correlation",
 ]

@@ -128,17 +128,56 @@ def grid_alignment_statistics(
 def compute_ulp_distance(before: Tensor, after: Tensor) -> Tensor:
     """Compute how many ULPs each weight moved (DIAG-04).
 
-    Stub implementation - will be completed in Task 3.
+    ULP (Unit in Last Place) is the distance to the next representable value.
+    This measures updates in terms of bit-positions, not real value.
+
+    Uses torch.nextafter for IEEE 754 compliant ULP computation.
+
+    Args:
+        before: Weights before update
+        after: Weights after update
+
+    Returns:
+        Tensor of ULP distances (0 = no movement = bit-stall)
+
+    Example:
+        >>> before = torch.tensor([1.0, 2.0])
+        >>> after = torch.tensor([1.0, 2.5])
+        >>> dist = compute_ulp_distance(before, after)
     """
-    raise NotImplementedError("compute_ulp_distance not yet implemented")
+    # ULP at each position = distance to next representable value
+    inf_tensor = torch.full_like(before, float('inf'))
+    ulp = torch.abs(torch.nextafter(before, inf_tensor) - before)
+
+    # Avoid division by zero for very small values
+    safe_ulp = ulp.clamp(min=1e-45)
+
+    # Distance in ULP units
+    distance = torch.abs(after - before) / safe_ulp
+    return distance
 
 
 def ulp_statistics(before: Tensor, after: Tensor) -> Dict[str, float]:
     """Return ULP movement statistics (DIAG-04).
 
-    Stub implementation - will be completed in Task 3.
+    Args:
+        before: Weights before update
+        after: Weights after update
+
+    Returns:
+        Dictionary with keys:
+          - ulp_mean: Mean ULP movement
+          - ulp_median: Median ULP movement
+          - ulp_max: Maximum ULP movement
+          - ulp_zero_frac: Fraction with zero movement (stalled)
     """
-    raise NotImplementedError("ulp_statistics not yet implemented")
+    ulp_dist = compute_ulp_distance(before, after)
+    return {
+        "ulp_mean": ulp_dist.mean().item(),
+        "ulp_median": ulp_dist.median().item(),
+        "ulp_max": ulp_dist.max().item(),
+        "ulp_zero_frac": (ulp_dist == 0).float().mean().item(),
+    }
 
 
 def gradient_stiffness_correlation(
@@ -148,9 +187,55 @@ def gradient_stiffness_correlation(
 ) -> Dict[str, float]:
     """Analyze correlation between gradient magnitude and stiffness (DIAG-03).
 
-    Stub implementation - will be completed in Task 3.
+    High positive correlation indicates large gradients appear where
+    quantization is coarse (large stiffness). This is problematic.
+
+    The grad/stiffness ratio indicates update effectiveness:
+    - ratio > 1: gradient large enough to change quantized value
+    - ratio < 1: gradient likely too small (bit-stall risk)
+
+    Args:
+        weights: Weight tensor
+        gradients: Gradient tensor (same shape)
+        mantissa_bits: Number of mantissa bits in format
+
+    Returns:
+        Dictionary with keys:
+          - grad_stiff_correlation: Pearson correlation [-1, 1]
+          - grad_stiff_ratio_mean: Mean of gradient/stiffness ratio
+          - grad_below_stiffness_frac: Fraction where |grad| < stiffness
     """
-    raise NotImplementedError("gradient_stiffness_correlation not yet implemented")
+    stiffness = compute_stiffness_field(weights, mantissa_bits)
+    grad_mag = gradients.abs()
+
+    # Flatten and remove NaN stiffness (zero weights)
+    valid_mask = ~torch.isnan(stiffness)
+    s_flat = stiffness[valid_mask].flatten()
+    g_flat = grad_mag[valid_mask].flatten()
+
+    if len(s_flat) == 0:
+        return {
+            "grad_stiff_correlation": 0.0,
+            "grad_stiff_ratio_mean": 0.0,
+            "grad_below_stiffness_frac": 0.0,
+        }
+
+    # Compute Pearson correlation
+    s_centered = s_flat - s_flat.mean()
+    g_centered = g_flat - g_flat.mean()
+
+    numerator = (s_centered * g_centered).sum()
+    denominator = s_centered.norm() * g_centered.norm() + 1e-10
+    correlation = numerator / denominator
+
+    # Ratio of gradient to stiffness
+    ratio = g_flat / s_flat.clamp(min=1e-10)
+
+    return {
+        "grad_stiff_correlation": correlation.item(),
+        "grad_stiff_ratio_mean": ratio.mean().item(),
+        "grad_below_stiffness_frac": (g_flat < s_flat).float().mean().item(),
+    }
 
 
 __all__ = [
