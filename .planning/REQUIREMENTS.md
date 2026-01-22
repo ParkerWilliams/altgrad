@@ -20,8 +20,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **STAB-02**: NaN/Inf detection with configurable early stopping
 - [x] **STAB-03**: Dynamic range tracking (amax moving average)
 - [x] **STAB-04**: Bit-Stall counter (tracks when `round(b + delta_b) == b` despite non-zero gradient)
-- [ ] **STAB-05**: Partition-relative gradient clipping (clip based on format's dynamic range)
-- [ ] **STAB-06**: Emergency mantissa shift (increase M bits on persistent NaN/high stall rate)
+- [x] **STAB-05**: Partition-relative gradient clipping (clip based on format's dynamic range)
+- [x] **STAB-06**: Emergency mantissa shift (increase M bits on persistent NaN/high stall rate)
 
 ### Training Metrics
 
@@ -54,10 +54,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Manifold Diagnostics
 
-- [ ] **DIAG-01**: Stiffness field visualization (per-weight S values over training)
-- [ ] **DIAG-02**: Quantization grid alignment measurement (distance to nearest FP8 value)
-- [ ] **DIAG-03**: Gradient-stiffness correlation analysis
-- [ ] **DIAG-04**: ULP statistics (how many bit-positions each update moves)
+- [x] **DIAG-01**: Stiffness field visualization (per-weight S values over training)
+- [x] **DIAG-02**: Quantization grid alignment measurement (distance to nearest FP8 value)
+- [x] **DIAG-03**: Gradient-stiffness correlation analysis
+- [x] **DIAG-04**: ULP statistics (how many bit-positions each update moves)
 
 ### Experiment Infrastructure
 
@@ -117,8 +117,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAB-02 | Phase 2 | Complete |
 | STAB-03 | Phase 2 | Complete |
 | STAB-04 | Phase 1 | Complete |
-| STAB-05 | Phase 4 | Pending |
-| STAB-06 | Phase 4 | Pending |
+| STAB-05 | Phase 4 | Complete |
+| STAB-06 | Phase 4 | Complete |
 | METR-01 | Phase 2 | Complete |
 | METR-02 | Phase 2 | Complete |
 | METR-03 | Phase 2 | Complete |
@@ -136,10 +136,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MANI-02 | Phase 5 | Pending |
 | MANI-03 | Phase 5 | Pending |
 | MANI-04 | Phase 5 | Pending |
-| DIAG-01 | Phase 4 | Pending |
-| DIAG-02 | Phase 4 | Pending |
-| DIAG-03 | Phase 4 | Pending |
-| DIAG-04 | Phase 4 | Pending |
+| DIAG-01 | Phase 4 | Complete |
+| DIAG-02 | Phase 4 | Complete |
+| DIAG-03 | Phase 4 | Complete |
+| DIAG-04 | Phase 4 | Complete |
 | EXPR-01 | Phase 2 | Complete |
 | EXPR-02 | Phase 2 | Complete |
 | EXPR-03 | Phase 2 | Complete |
@@ -155,4 +155,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-21 after Phase 3 completion*
+*Last updated: 2026-01-21 after Phase 4 completion*
