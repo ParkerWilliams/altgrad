@@ -43,6 +43,7 @@ from altgrad.training.format_runner import (
     DiagnosticSnapshot,
     run_format_experiment,
 )
+from altgrad.training.optimizer import ManifoldAdamW
 
 __all__ = [
     # Model
@@ -74,4 +75,6 @@ __all__ = [
     "ExperimentResult",
     "DiagnosticSnapshot",
     "run_format_experiment",
+    # Optimizer
+    "ManifoldAdamW",
 ]

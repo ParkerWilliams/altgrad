@@ -235,7 +235,7 @@ class TestWeightDecay:
 
     def test_weight_decay_decoupled(self):
         """Weight decay is decoupled (AdamW style), not L2."""
-        param = torch.ones(10, 10, requires_grad=True) * 2.0
+        param = torch.full((10, 10), 2.0, requires_grad=True)
         original = param.data.clone()
 
         optimizer = ManifoldAdamW([param], lr=0.1, weight_decay=0.1, manifold_aware=False)
