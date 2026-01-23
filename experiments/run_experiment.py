@@ -88,6 +88,11 @@ def main() -> None:
     print("\nStarting training...")
     trainer.train()
     print("\nTraining complete!")
+    print("\n" + "=" * 60)
+    print("NEXT STEP: Regenerate analysis reports")
+    print("=" * 60)
+    print("Run: python scripts/generate_reports.py --project <your-wandb-project>")
+    print("This will update ANAL-01, ANAL-02, ANAL-03 with your new results.")
 
 
 if __name__ == "__main__":
