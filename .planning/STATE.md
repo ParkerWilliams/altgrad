@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 5 of 6 (Manifold-Aware Optimizer)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-22 - Completed 05-01-PLAN.md (ManifoldAdamW Optimizer)
+Last activity: 2026-01-22 - Completed 05-02-PLAN.md (TrainConfig Integration)
 
-Progress: [##############] 100% (14/16 plans through Phase 5.1)
+Progress: [###############] 100% (15/16 plans through Phase 5.2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: 10 min
-- Total execution time: 2.5 hours
+- Total execution time: 2.6 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [##############] 100% (14/16 plans through Phase 5.1)
 | 02-baseline-validation | 5 | 38 min | 8 min |
 | 03-model-integration | 2 | 9 min | 5 min |
 | 04-custom-format-testing | 3 | 12 min | 4 min |
-| 05-manifold-aware-optimizer | 1 | 8 min | 8 min |
+| 05-manifold-aware-optimizer | 2 | 11 min | 6 min |
 
 **Recent Trend:**
-- Last 3 plans: 5 min, 4 min, 8 min
+- Last 3 plans: 4 min, 8 min, 3 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -81,6 +81,9 @@ Recent decisions affecting current work:
 - **NEW:** Stiffness preconditioning BEFORE momentum (grad * stiffness, then exp_avg update)
 - **NEW:** NaN stiffness replaced with 1.0 neutral multiplier
 - **NEW:** Bit-position tracks signed ULP movement (direction-aware)
+- **NEW:** use_manifold_aware toggle in TrainConfig controls optimizer selection
+- **NEW:** log_bit_position=True logs mean/std/min/max bit-position stats
+- **NEW:** manifold_mantissa_bits default=2 matches E5M2 format
 
 ### Pending Todos
 
@@ -111,12 +114,12 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 05-01-PLAN.md (ManifoldAdamW Optimizer)
+Stopped at: Completed 05-02-PLAN.md (TrainConfig Integration)
 Resume file: None
 
 ## Next Steps
 
-1. **Continue Phase 5:** Plan 05-02 (TrainConfig integration for manifold optimizer)
-2. **Then Plan 05-03:** Trainer integration with ManifoldAdamW
-3. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
-4. **Run format experiments:** Compare standard vs manifold-aware training
+1. **Continue Phase 5:** Plan 05-03 (Manifold experiment validation)
+2. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
+3. **Run manifold experiments:** Compare e5m2_manifold vs e5m2_standard
+4. **Run format experiments:** Compare all FP8 formats with manifold-aware training
