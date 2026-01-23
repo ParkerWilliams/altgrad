@@ -37,6 +37,7 @@ from altgrad.training.data import get_batch
 from altgrad.training.metrics import compute_gradient_stats, compute_stability_metrics
 from altgrad.training.checkpoint import CheckpointManager, load_checkpoint
 from altgrad.training.shadow import FP32ShadowModel
+from altgrad.training.optimizer import ManifoldAdamW
 
 # Quantization imports (guarded for non-FP8 usage)
 from altgrad.quantization import (
@@ -100,13 +101,16 @@ class Trainer:
         # Determine device type for optimizer/autocast
         self.device_type = "cuda" if "cuda" in device else "cpu"
 
-        # Configure optimizer
-        self.optimizer = model.configure_optimizers(
-            weight_decay=0.1,
-            learning_rate=config.learning_rate,
-            betas=(0.9, 0.95),
-            device_type=self.device_type,
-        )
+        # Configure optimizer (ManifoldAdamW or standard AdamW)
+        if config.use_manifold_aware:
+            self.optimizer = self._configure_manifold_optimizer(model, config)
+        else:
+            self.optimizer = model.configure_optimizers(
+                weight_decay=0.1,
+                learning_rate=config.learning_rate,
+                betas=(0.9, 0.95),
+                device_type=self.device_type,
+            )
 
         # Gradient scaler for mixed precision
         # Use enabled=True only for CUDA (MPS/CPU don't support AMP scaler)
@@ -156,6 +160,90 @@ class Trainer:
         # Training state
         self.step = 0
         self.best_val_loss = float("inf")
+
+    def _configure_manifold_optimizer(
+        self,
+        model: nn.Module,
+        config: TrainConfig,
+    ) -> ManifoldAdamW:
+        """Configure ManifoldAdamW optimizer with weight decay separation.
+
+        Similar to GPT.configure_optimizers but returns ManifoldAdamW with
+        stiffness preconditioning for geometry-aware gradient updates.
+
+        Args:
+            model: Model to optimize
+            config: Training configuration with manifold settings
+
+        Returns:
+            Configured ManifoldAdamW optimizer
+        """
+        # Separate parameters into decay and no-decay groups
+        decay = set()
+        no_decay = set()
+
+        for pn, p in model.named_parameters():
+            if not p.requires_grad:
+                continue
+            # 2D params (weights) get decay, 1D params (biases, norms) don't
+            if p.dim() >= 2:
+                decay.add(pn)
+            else:
+                no_decay.add(pn)
+
+        param_dict = {pn: p for pn, p in model.named_parameters() if p.requires_grad}
+
+        optim_groups = [
+            {
+                "params": [param_dict[pn] for pn in sorted(decay)],
+                "weight_decay": 0.1,
+            },
+            {
+                "params": [param_dict[pn] for pn in sorted(no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+
+        return ManifoldAdamW(
+            optim_groups,
+            lr=config.learning_rate,
+            betas=(0.9, 0.95),
+            manifold_aware=True,
+            mantissa_bits=config.manifold_mantissa_bits,
+            max_stiffness=config.manifold_max_stiffness,
+        )
+
+    def _get_bit_position_stats(self) -> Dict[str, float]:
+        """Get bit-position tracking statistics from ManifoldAdamW.
+
+        Returns:
+            Dictionary with bit-position statistics:
+              - bit_position/mean: Mean cumulative ULP movement
+              - bit_position/std: Std of cumulative ULP movement
+              - bit_position/min: Min cumulative ULP movement
+              - bit_position/max: Max cumulative ULP movement
+        """
+        if not isinstance(self.optimizer, ManifoldAdamW):
+            return {}
+
+        all_positions = []
+        for group in self.optimizer.param_groups:
+            for p in group["params"]:
+                if p in self.optimizer.state:
+                    state = self.optimizer.state[p]
+                    if "bit_position" in state:
+                        all_positions.append(state["bit_position"].flatten())
+
+        if not all_positions:
+            return {}
+
+        combined = torch.cat(all_positions)
+        return {
+            "bit_position/mean": combined.mean().item(),
+            "bit_position/std": combined.std().item(),
+            "bit_position/min": combined.min().item(),
+            "bit_position/max": combined.max().item(),
+        }
 
     def train_step(self, x: torch.Tensor, y: torch.Tensor) -> Dict[str, float]:
         """Execute one training step.
@@ -510,6 +598,14 @@ class Trainer:
             stall_rate = train_metrics.get("quantization/bit_stall_rate", 0)
             overflow_rate = train_metrics.get("quantization/overflow_rate", 0)
             log_line += f", stall={stall_rate:.2%}, overflow={overflow_rate:.2%}"
+
+        # Add bit-position stats for manifold-aware training
+        if self.config.use_manifold_aware and self.config.log_bit_position:
+            bit_stats = self._get_bit_position_stats()
+            train_metrics.update(bit_stats)
+            bp_mean = bit_stats.get("bit_position/mean", 0)
+            bp_std = bit_stats.get("bit_position/std", 0)
+            log_line += f", bit_pos={bp_mean:.1f}+/-{bp_std:.1f}"
 
         print(log_line)
 
