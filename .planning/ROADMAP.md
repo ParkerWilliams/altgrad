@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Baseline Validation** - BF16 baseline and standard FP8 training with monitoring infrastructure
 - [x] **Phase 3: Model Integration** - QuantizedLinear wrappers and nanoGPT surgery without forking
 - [x] **Phase 4: Custom Format Testing** - E1M6, E3M4, E7M0 experiments (E7M0 as negative result)
-- [ ] **Phase 5: Manifold-Aware Optimizer** - Stiffness-preconditioned updates and geometry diagnostics
+- [x] **Phase 5: Manifold-Aware Optimizer** - Stiffness-preconditioned updates and geometry diagnostics
 - [ ] **Phase 6: Analysis & Documentation** - Comparative analysis and failure mode documentation
 
 ## Phase Details
@@ -101,8 +101,8 @@ Plans:
 **Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 05-01-PLAN.md — ManifoldAdamW optimizer with stiffness preconditioning (TDD)
-- [ ] 05-02-PLAN.md — Config/Trainer integration and experiment configs
+- [x] 05-01-PLAN.md — ManifoldAdamW optimizer with stiffness preconditioning (TDD)
+- [x] 05-02-PLAN.md — Config/Trainer integration and experiment configs
 
 ### Phase 6: Analysis & Documentation
 **Goal**: Synthesis of findings answering which FP8 format benefits most from geometry-aware updates
@@ -129,7 +129,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Baseline Validation | 5/5 | Complete | 2026-01-21 |
 | 3. Model Integration | 2/2 | Complete | 2026-01-21 |
 | 4. Custom Format Testing | 3/3 | Complete | 2026-01-21 |
-| 5. Manifold-Aware Optimizer | 0/2 | Ready | - |
+| 5. Manifold-Aware Optimizer | 2/2 | Complete | 2026-01-22 |
 | 6. Analysis & Documentation | 0/? | Not started | - |
 
 ---

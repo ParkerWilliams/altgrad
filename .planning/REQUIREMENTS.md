@@ -47,10 +47,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Manifold-Aware Optimizer
 
-- [ ] **MANI-01**: Stiffness factor calculation: `S = 2^(floor(log2|w|) - M)`
-- [ ] **MANI-02**: Stiffness-preconditioned gradient step (`grad *= S` before update)
-- [ ] **MANI-03**: Standard vs manifold-aware training mode toggle
-- [ ] **MANI-04**: Bit-position tracking (latent integer state for each weight)
+- [x] **MANI-01**: Stiffness factor calculation: `S = 2^(floor(log2|w|) - M)`
+- [x] **MANI-02**: Stiffness-preconditioned gradient step (`grad *= S` before update)
+- [x] **MANI-03**: Standard vs manifold-aware training mode toggle
+- [x] **MANI-04**: Bit-position tracking (latent integer state for each weight)
 
 ### Manifold Diagnostics
 
@@ -132,10 +132,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INTG-02 | Phase 3 | Complete |
 | INTG-03 | Phase 3 | Complete |
 | INTG-04 | Phase 2 | Complete |
-| MANI-01 | Phase 5 | Pending |
-| MANI-02 | Phase 5 | Pending |
-| MANI-03 | Phase 5 | Pending |
-| MANI-04 | Phase 5 | Pending |
+| MANI-01 | Phase 5 | Complete |
+| MANI-02 | Phase 5 | Complete |
+| MANI-03 | Phase 5 | Complete |
+| MANI-04 | Phase 5 | Complete |
 | DIAG-01 | Phase 4 | Complete |
 | DIAG-02 | Phase 4 | Complete |
 | DIAG-03 | Phase 4 | Complete |
@@ -155,4 +155,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-21 after Phase 4 completion*
+*Last updated: 2026-01-22 after Phase 5 completion*
