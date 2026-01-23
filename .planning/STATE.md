@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-20)
 
 **Core value:** Evidence-backed answer to which 8-bit floating-point format most benefits from geometry-aware updates, and why.
-**Current focus:** Phase 4 - Custom Format Testing (COMPLETE)
+**Current focus:** Phase 5 - Manifold-Aware Optimizer (IN PROGRESS)
 
 ## Current Position
 
-Phase: 4 of 6 (Custom Format Testing)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-01-22 - Completed 04-03-PLAN.md (Format Experiment Runner)
+Phase: 5 of 6 (Manifold-Aware Optimizer)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-22 - Completed 05-01-PLAN.md (ManifoldAdamW Optimizer)
 
-Progress: [#############] 100% (13/13 plans through Phase 4)
+Progress: [##############] 100% (14/16 plans through Phase 5.1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 10 min
-- Total execution time: 2.4 hours
+- Total execution time: 2.5 hours
 
 **By Phase:**
 
@@ -31,9 +31,10 @@ Progress: [#############] 100% (13/13 plans through Phase 4)
 | 02-baseline-validation | 5 | 38 min | 8 min |
 | 03-model-integration | 2 | 9 min | 5 min |
 | 04-custom-format-testing | 3 | 12 min | 4 min |
+| 05-manifold-aware-optimizer | 1 | 8 min | 8 min |
 
 **Recent Trend:**
-- Last 3 plans: 3 min, 5 min, 4 min
+- Last 3 plans: 5 min, 4 min, 8 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -75,8 +76,11 @@ Recent decisions affecting current work:
 - E0M7 constant 1/128 stiffness (uniform grid spacing)
 - torch.nextafter for IEEE 754 compliant ULP computation
 - NaN stiffness for zero weights (undefined)
-- **NEW:** 500 steps for all format comparison configs (valid comparison)
-- **NEW:** Self-contained runner creates own Trainer (not extends)
+- 500 steps for all format comparison configs (valid comparison)
+- Self-contained runner creates own Trainer (not extends)
+- **NEW:** Stiffness preconditioning BEFORE momentum (grad * stiffness, then exp_avg update)
+- **NEW:** NaN stiffness replaced with 1.0 neutral multiplier
+- **NEW:** Bit-position tracks signed ULP movement (direction-aware)
 
 ### Pending Todos
 
@@ -107,12 +111,12 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 04-03-PLAN.md (Format Experiment Runner)
+Stopped at: Completed 05-01-PLAN.md (ManifoldAdamW Optimizer)
 Resume file: None
 
 ## Next Steps
 
-1. **Start Phase 5:** Experiment execution plans (requires H100 RunPod)
-2. **Deploy to RunPod:** Upload codebase to H100 instance
-3. **Run format experiments:** Use FormatExperimentRunner with new configs
-4. **Analyze results:** Compare format behavior, document failure modes
+1. **Continue Phase 5:** Plan 05-02 (TrainConfig integration for manifold optimizer)
+2. **Then Plan 05-03:** Trainer integration with ManifoldAdamW
+3. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
+4. **Run format experiments:** Compare standard vs manifold-aware training
