@@ -112,11 +112,11 @@ Plans:
   1. Summary analysis identifies sweet-spot format per layer type (attention, MLP, classifier)
   2. Failure mode documentation shows where each format fails (forward, backward, optimizer)
   3. Manifold-aware vs standard comparison quantifies benefit (or lack thereof) for each format
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md — Analysis module: data loader, comparisons, failure analysis, report generator
+- [ ] 06-02-PLAN.md — Generate reports (format_comparison.md, failure_modes.md, manifold_comparison.md)
 
 ## Progress
 
@@ -130,7 +130,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Model Integration | 2/2 | Complete | 2026-01-21 |
 | 4. Custom Format Testing | 3/3 | Complete | 2026-01-21 |
 | 5. Manifold-Aware Optimizer | 2/2 | Complete | 2026-01-22 |
-| 6. Analysis & Documentation | 0/? | Not started | - |
+| 6. Analysis & Documentation | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-20*
