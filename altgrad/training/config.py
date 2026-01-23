@@ -117,6 +117,12 @@ class TrainConfig:
     log_grid_alignment: bool = False  # Log grid alignment stats
     log_ulp: bool = False  # Log ULP movement stats
 
+    # Manifold-aware optimizer (Phase 5)
+    use_manifold_aware: bool = False  # Use ManifoldAdamW instead of AdamW
+    manifold_mantissa_bits: int = 2  # Format mantissa bits (E5M2=2)
+    manifold_max_stiffness: float = 1e6  # Maximum stiffness clamp
+    log_bit_position: bool = False  # Log bit-position tracking stats
+
     # Logging intervals
     log_interval: int = 1
     eval_interval: int = 100
@@ -179,6 +185,7 @@ def load_config(path: str) -> TrainConfig:
         "dead_neuron_threshold",
         "partition_clip_base",
         "emergency_shift_stall_threshold",
+        "manifold_max_stiffness",
     ]
     for field in float_fields:
         if field in config_dict and config_dict[field] is not None:
