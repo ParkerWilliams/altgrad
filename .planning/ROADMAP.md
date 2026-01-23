@@ -98,11 +98,11 @@ Plans:
   2. Stiffness-preconditioned updates move weights by consistent ULP counts (not real-value deltas)
   3. Standard vs manifold-aware toggle produces measurably different training dynamics
   4. Bit-position tracking shows latent integer state evolution across training steps
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01-PLAN.md — ManifoldAdamW optimizer with stiffness preconditioning (TDD)
+- [ ] 05-02-PLAN.md — Config/Trainer integration and experiment configs
 
 ### Phase 6: Analysis & Documentation
 **Goal**: Synthesis of findings answering which FP8 format benefits most from geometry-aware updates
@@ -129,7 +129,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Baseline Validation | 5/5 | Complete | 2026-01-21 |
 | 3. Model Integration | 2/2 | Complete | 2026-01-21 |
 | 4. Custom Format Testing | 3/3 | Complete | 2026-01-21 |
-| 5. Manifold-Aware Optimizer | 0/? | Ready | - |
+| 5. Manifold-Aware Optimizer | 0/2 | Ready | - |
 | 6. Analysis & Documentation | 0/? | Not started | - |
 
 ---
