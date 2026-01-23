@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-20)
 
 **Core value:** Evidence-backed answer to which 8-bit floating-point format most benefits from geometry-aware updates, and why.
-**Current focus:** Phase 5 - Manifold-Aware Optimizer (COMPLETE)
+**Current focus:** Phase 6 - Analysis & Documentation (IN PROGRESS)
 
 ## Current Position
 
-Phase: 5 of 6 (Manifold-Aware Optimizer)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-22 - Completed Phase 5 (Manifold-Aware Optimizer)
+Phase: 6 of 6 (Analysis & Documentation)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-22 - Completed 06-01-PLAN.md (Analysis Module)
 
-Progress: [###############] 100% (15/15 plans through Phase 5)
+Progress: [################] 100% (16/17 plans through Phase 6 Plan 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 16
 - Average duration: 10 min
-- Total execution time: 2.6 hours
+- Total execution time: 2.7 hours
 
 **By Phase:**
 
@@ -32,9 +32,10 @@ Progress: [###############] 100% (15/15 plans through Phase 5)
 | 03-model-integration | 2 | 9 min | 5 min |
 | 04-custom-format-testing | 3 | 12 min | 4 min |
 | 05-manifold-aware-optimizer | 2 | 11 min | 6 min |
+| 06-analysis-documentation | 1 | 8 min | 8 min |
 
 **Recent Trend:**
-- Last 3 plans: 4 min, 8 min, 3 min
+- Last 3 plans: 8 min, 3 min, 8 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -78,12 +79,15 @@ Recent decisions affecting current work:
 - NaN stiffness for zero weights (undefined)
 - 500 steps for all format comparison configs (valid comparison)
 - Self-contained runner creates own Trainer (not extends)
-- **NEW:** Stiffness preconditioning BEFORE momentum (grad * stiffness, then exp_avg update)
-- **NEW:** NaN stiffness replaced with 1.0 neutral multiplier
-- **NEW:** Bit-position tracks signed ULP movement (direction-aware)
-- **NEW:** use_manifold_aware toggle in TrainConfig controls optimizer selection
-- **NEW:** log_bit_position=True logs mean/std/min/max bit-position stats
-- **NEW:** manifold_mantissa_bits default=2 matches E5M2 format
+- Stiffness preconditioning BEFORE momentum (grad * stiffness, then exp_avg update)
+- NaN stiffness replaced with 1.0 neutral multiplier
+- Bit-position tracks signed ULP movement (direction-aware)
+- use_manifold_aware toggle in TrainConfig controls optimizer selection
+- log_bit_position=True logs mean/std/min/max bit-position stats
+- manifold_mantissa_bits default=2 matches E5M2 format
+- **NEW:** Lazy W&B API import to allow testing without credentials
+- **NEW:** DataFrame-centric design for analysis - all data flows through pandas
+- **NEW:** Report generator creates reports/ directory on init
 
 ### Pending Todos
 
@@ -93,7 +97,7 @@ Recent decisions affecting current work:
 3. Run E5M2 short: `python experiments/run_experiment.py experiments/configs/e5m2_short.yaml`
 4. Run format experiments: e3m4_uniform, e1m6_uniform, e0m7_uniform, e7m0_uniform
 5. Collect W&B logs and failure reports
-6. Generate format comparison analysis
+6. Generate format comparison analysis using altgrad.analysis module
 
 ### Blockers/Concerns
 
@@ -114,12 +118,12 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed Phase 5 (Manifold-Aware Optimizer)
+Stopped at: Completed 06-01-PLAN.md (Analysis Module)
 Resume file: None
 
 ## Next Steps
 
-1. **Start Phase 6:** Analysis & Documentation
+1. **Continue Phase 6:** Complete remaining documentation plans
 2. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
-3. **Run manifold experiments:** Compare e5m2_manifold vs e5m2_standard
-4. **Analyze results:** Compare format behavior, document findings
+3. **Run experiments:** Execute all format comparison and manifold experiments
+4. **Generate reports:** Use altgrad.analysis to create ANAL-01, ANAL-02, ANAL-03
