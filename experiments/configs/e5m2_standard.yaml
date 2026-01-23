@@ -1,0 +1,51 @@
+# E5M2 FP8 with Standard AdamW (Baseline for Manifold Comparison)
+# Uses standard AdamW without stiffness preconditioning
+# Compare against e5m2_manifold.yaml to measure manifold benefit
+
+# Model architecture (IDENTICAL to all format comparison configs)
+n_layer: 6
+n_head: 6
+n_embd: 384
+block_size: 256
+vocab_size: 50257
+dropout: 0.0
+
+# Training (500 steps for format comparison)
+batch_size: 12
+learning_rate: 6e-4
+max_steps: 500
+warmup_steps: 100
+grad_clip: 1.0
+
+# Precision - E5M2 FP8
+use_fp8: true
+fp8_format: "E5M2"
+use_shadow: true
+
+# Standard optimizer (regular AdamW)
+use_manifold_aware: false
+log_bit_position: false
+
+# Checkpointing
+checkpoint_interval: 100
+checkpoint_dir: "checkpoints/e5m2_standard"
+max_checkpoints: 3
+
+# Stability thresholds
+nan_patience: 10
+bit_stall_threshold: 0.5
+overflow_threshold: 0.01
+dead_neuron_threshold: 1.0e-8
+dead_neuron_window: 100
+
+# Logging
+log_interval: 1
+eval_interval: 100
+
+# W&B
+project: "altgrad"
+run_name: "e5m2-standard"
+tags: ["fp8", "e5m2", "standard-adamw", "baseline"]
+
+# Reproducibility (SAME SEED for fair comparison)
+seed: 42
