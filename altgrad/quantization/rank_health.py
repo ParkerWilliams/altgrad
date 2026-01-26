@@ -244,10 +244,17 @@ class RankHealthMonitor:
     Computes stable rank, effective rank, and spectral norm for all
     weight matrices in a model. Tracks trends and warns on collapse.
 
+    Classifier-Specific Monitoring:
+        Critical layers like lm_head and c_proj receive stricter threshold
+        monitoring. With default settings (warn_threshold=0.3, multiplier=0.5),
+        classifiers warn at 15% drop vs 30% for other layers.
+
     Attributes:
         log_interval: Compute rank every N steps.
-        warn_threshold: Fraction drop that triggers warning.
+        warn_threshold: Fraction drop that triggers warning for non-critical layers.
         critical_layers: Layer name patterns to prioritize for warnings.
+        critical_threshold_multiplier: Multiplier for critical layer thresholds.
+            Critical layers use warn_threshold * critical_threshold_multiplier.
 
     Example:
         >>> import torch.nn as nn
@@ -256,6 +263,9 @@ class RankHealthMonitor:
         >>> ranks = monitor.compute_layer_ranks(model)
         >>> for name, metrics in ranks.items():
         ...     print(f"{name}: stable={metrics['stable_rank']:.2f}")
+        >>> # Check thresholds
+        >>> monitor.get_threshold_for_layer("lm_head.weight")  # Returns 0.15
+        >>> monitor.get_threshold_for_layer("encoder.layer.weight")  # Returns 0.3
     """
 
     def __init__(
@@ -263,6 +273,7 @@ class RankHealthMonitor:
         log_interval: int = 100,
         warn_threshold: float = 0.3,
         critical_layers: Optional[List[str]] = None,
+        critical_threshold_multiplier: float = 0.5,
     ):
         """Initialize rank health monitor.
 
@@ -271,10 +282,14 @@ class RankHealthMonitor:
             warn_threshold: Fraction drop from initial that triggers warning.
             critical_layers: Layer name patterns to prioritize (e.g., ["lm_head"]).
                            Defaults to ["lm_head", "c_proj"].
+            critical_threshold_multiplier: Multiplier applied to warn_threshold
+                for critical layers. Default 0.5 means critical layers warn at
+                half the threshold (e.g., 0.3 * 0.5 = 0.15 for classifiers).
         """
         self.log_interval = log_interval
         self.warn_threshold = warn_threshold
         self.critical_layers = critical_layers or ["lm_head", "c_proj"]
+        self.critical_threshold_multiplier = critical_threshold_multiplier
 
         # Per-layer trend detectors
         self._detectors: Dict[str, RankTrendDetector] = {}
@@ -324,6 +339,30 @@ class RankHealthMonitor:
 
         return ranks
 
+    def get_threshold_for_layer(self, name: str) -> float:
+        """Return warning threshold for a layer.
+
+        Critical layers (lm_head, c_proj by default) use a stricter threshold
+        to provide earlier warning of rank collapse in output-critical layers.
+
+        Args:
+            name: Layer parameter name.
+
+        Returns:
+            Warning threshold (fraction drop that triggers warning).
+            - critical_layers: warn_threshold * critical_threshold_multiplier
+            - other layers: warn_threshold
+
+        Example:
+            >>> monitor = RankHealthMonitor(warn_threshold=0.3, critical_threshold_multiplier=0.5)
+            >>> monitor.get_threshold_for_layer("lm_head.weight")  # Returns 0.15
+            >>> monitor.get_threshold_for_layer("encoder.layer.0.weight")  # Returns 0.3
+        """
+        is_critical = any(pattern in name for pattern in self.critical_layers)
+        if is_critical:
+            return self.warn_threshold * self.critical_threshold_multiplier
+        return self.warn_threshold
+
     def check_warnings(
         self, ranks: Dict[str, Dict[str, float]]
     ) -> List[str]:
@@ -343,11 +382,7 @@ class RankHealthMonitor:
         for name, metrics in ranks.items():
             # Get or create detector for this layer
             if name not in self._detectors:
-                # Use stricter threshold for critical layers
-                is_critical = any(
-                    pattern in name for pattern in self.critical_layers
-                )
-                threshold = self.warn_threshold * 0.5 if is_critical else self.warn_threshold
+                threshold = self.get_threshold_for_layer(name)
                 self._detectors[name] = RankTrendDetector(
                     threshold_pct=threshold, window=self.log_interval
                 )
