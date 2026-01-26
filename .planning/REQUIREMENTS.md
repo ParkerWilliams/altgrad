@@ -83,6 +83,24 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **RANK-02**: Effective rank tracking (singular values needed for 99% variance)
 - [x] **RANK-03**: Rank collapse early warning (detect downward trends before catastrophic collapse)
 
+### Update Metrics
+
+- [x] **UPDT-01**: Weight update counting (non-zero gradient applied, distinct from flip count)
+- [x] **UPDT-02**: Stall ratio computation (1 - flips/updates) to quantify gradient effectiveness
+
+### Grid-Based Optimizer
+
+- [x] **GRID-01**: Grid-based (rung) optimizer with stochastic rounding and rung clipping
+- [x] **GRID-02**: Master weights in FP32 with FP8 projection for grid-aware updates
+
+### Classifier Rank Monitoring
+
+- [x] **CLSF-01**: Classifier-specific (lm_head, c_proj) rank health tracking with stricter thresholds
+
+### Experiment Documentation
+
+- [x] **MTRIX-01**: TEST_MATRIX.md documenting all format × optimizer × layer combinations
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -163,12 +181,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RANK-01 | Phase 7 | Complete |
 | RANK-02 | Phase 7 | Complete |
 | RANK-03 | Phase 7 | Complete |
+| UPDT-01 | Phase 8 | Complete |
+| UPDT-02 | Phase 8 | Complete |
+| GRID-01 | Phase 8 | Complete |
+| GRID-02 | Phase 8 | Complete |
+| CLSF-01 | Phase 8 | Complete |
+| MTRIX-01 | Phase 8 | Complete |
 
 **Coverage:**
-- v1 requirements: 44 total
-- Mapped to phases: 44
+- v1 requirements: 50 total
+- Mapped to phases: 50
 - Unmapped: 0
+- Complete: 50
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-25 after Phase 7 added*
+*Last updated: 2026-01-26 after Phase 8 complete*

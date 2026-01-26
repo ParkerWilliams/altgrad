@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Manifold-Aware Optimizer** - Stiffness-preconditioned updates and geometry diagnostics
 - [x] **Phase 6: Analysis & Documentation** - Comparative analysis and failure mode documentation
 - [x] **Phase 7: Flip Metrics & Rank Health Monitoring** - Weight flip counting, stable/effective rank tracking, and rank collapse early warning
-- [ ] **Phase 8: Update Metrics & Test Matrix** - Disambiguate flips/updates/stalls, grid-based optimizer reference, classifier rank tracking, experiment matrix documentation
+- [x] **Phase 8: Update Metrics & Test Matrix** - Disambiguate flips/updates/stalls, grid-based optimizer reference, classifier rank tracking, experiment matrix documentation
 
 ## Phase Details
 
@@ -149,10 +149,10 @@ Plans:
 **Plans**: 4 plans in 2 waves
 
 Plans:
-- [ ] 08-01-PLAN.md — Update metrics: extend WeightFlipTracker with update counting and stall ratio (UPDT-01, UPDT-02)
-- [ ] 08-02-PLAN.md — GridOptim: rung-based optimizer with stochastic rounding (GRID-01, GRID-02)
-- [ ] 08-03-PLAN.md — Classifier rank monitoring: stricter thresholds for lm_head/c_proj (CLSF-01)
-- [ ] 08-04-PLAN.md — TEST_MATRIX.md: comprehensive experiment matrix documentation (MTRIX-01)
+- [x] 08-01-PLAN.md — Update metrics: extend WeightFlipTracker with update counting and stall ratio (UPDT-01, UPDT-02)
+- [x] 08-02-PLAN.md — GridOptim: rung-based optimizer with stochastic rounding (GRID-01, GRID-02)
+- [x] 08-03-PLAN.md — Classifier rank monitoring: stricter thresholds for lm_head/c_proj (CLSF-01)
+- [x] 08-04-PLAN.md — TEST_MATRIX.md: comprehensive experiment matrix documentation (MTRIX-01)
 
 ## Progress
 
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 5. Manifold-Aware Optimizer | 2/2 | Complete | 2026-01-22 |
 | 6. Analysis & Documentation | 2/2 | Complete | 2026-01-22 |
 | 7. Flip Metrics & Rank Health | 2/2 | Complete | 2026-01-25 |
-| 8. Update Metrics & Test Matrix | 0/4 | Planned | - |
+| 8. Update Metrics & Test Matrix | 4/4 | Complete | 2026-01-26 |
 
 ---
 *Roadmap created: 2026-01-20*
