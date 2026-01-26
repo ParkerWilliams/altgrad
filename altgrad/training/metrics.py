@@ -26,6 +26,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from altgrad.quantization.rank_health import compute_stable_rank, compute_effective_rank
+
 if TYPE_CHECKING:
     from altgrad.quantization.diagnostics import BitStallDetector
 
@@ -239,8 +241,70 @@ def gradient_cosine_similarity(
     return similarities
 
 
+def compute_rank_stats(model: nn.Module) -> Dict[str, float]:
+    """Compute per-layer and aggregate rank statistics.
+
+    For each 2D+ parameter, computes stable rank and effective rank.
+    These metrics detect gradual rank degradation during training.
+
+    Args:
+        model: PyTorch model to analyze.
+
+    Returns:
+        Dictionary with keys:
+          - stable_rank/{name}: Stable rank for each 2D+ parameter
+          - effective_rank/{name}: Effective rank for each parameter
+          - stable_rank/mean: Mean stable rank across layers
+          - effective_rank/mean: Mean effective rank across layers
+          - stable_rank/min: Minimum stable rank (collapse indicator)
+          - effective_rank/min: Minimum effective rank
+
+    Example:
+        >>> model = nn.Sequential(nn.Linear(64, 32), nn.Linear(32, 10))
+        >>> stats = compute_rank_stats(model)
+        >>> print(f"Mean stable rank: {stats['stable_rank/mean']:.2f}")
+    """
+    stats: Dict[str, float] = {}
+    stable_ranks = []
+    effective_ranks = []
+
+    for name, param in model.named_parameters():
+        # Skip 1D parameters (biases, LayerNorm scales)
+        if param.dim() < 2:
+            continue
+
+        weight = param.data.detach()
+
+        # Compute rank metrics
+        sr = compute_stable_rank(weight)
+        er = compute_effective_rank(weight)
+
+        stats[f"stable_rank/{name}"] = sr
+        stats[f"effective_rank/{name}"] = er
+        stable_ranks.append(sr)
+        effective_ranks.append(er)
+
+    # Aggregates
+    if stable_ranks:
+        stats["stable_rank/mean"] = sum(stable_ranks) / len(stable_ranks)
+        stats["stable_rank/min"] = min(stable_ranks)
+    else:
+        stats["stable_rank/mean"] = 0.0
+        stats["stable_rank/min"] = 0.0
+
+    if effective_ranks:
+        stats["effective_rank/mean"] = sum(effective_ranks) / len(effective_ranks)
+        stats["effective_rank/min"] = min(effective_ranks)
+    else:
+        stats["effective_rank/mean"] = 0.0
+        stats["effective_rank/min"] = 0.0
+
+    return stats
+
+
 __all__ = [
     "compute_gradient_stats",
     "compute_stability_metrics",
     "gradient_cosine_similarity",
+    "compute_rank_stats",
 ]

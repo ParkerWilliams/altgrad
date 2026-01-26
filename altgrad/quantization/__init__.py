@@ -116,4 +116,9 @@ __all__ = [
     # Flip Metrics
     "WeightFlipTracker",
     "compute_flip_rate",
+    # Rank Health
+    "compute_stable_rank",
+    "compute_effective_rank",
+    "RankTrendDetector",
+    "RankHealthMonitor",
 ]
