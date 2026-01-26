@@ -74,6 +74,7 @@ from altgrad.quantization.advanced_diagnostics import (
 from altgrad.quantization.flip_metrics import (
     WeightFlipTracker,
     compute_flip_rate,
+    compute_stall_ratio,
 )
 from altgrad.quantization.rank_health import (
     compute_stable_rank,
@@ -116,6 +117,7 @@ __all__ = [
     # Flip Metrics
     "WeightFlipTracker",
     "compute_flip_rate",
+    "compute_stall_ratio",
     # Rank Health
     "compute_stable_rank",
     "compute_effective_rank",
