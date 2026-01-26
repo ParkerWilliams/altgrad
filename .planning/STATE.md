@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 8 of 8 (Update Metrics & Test Matrix)
-Plan: 1 of ? in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-26 - Completed 08-01-PLAN.md (Update tracking and stall ratio)
+Last activity: 2026-01-26 - Completed 08-03-PLAN.md (Classifier-specific thresholds)
 
-Progress: [####################] 96% (20/21+ plans complete)
+Progress: [#######################] 97% (23/24 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
-- Average duration: 9 min
-- Total execution time: 3.1 hours
+- Total plans completed: 23
+- Average duration: 8 min
+- Total execution time: 3.2 hours
 
 **By Phase:**
 
@@ -34,10 +34,10 @@ Progress: [####################] 96% (20/21+ plans complete)
 | 05-manifold-aware-optimizer | 2 | 11 min | 6 min |
 | 06-analysis-documentation | 2 | 11 min | 6 min |
 | 07-flip-metrics-rank-health-monitoring | 2 | 11 min | 6 min |
-| 08-update-metrics-test-matrix | 2 | 6 min | 3 min |
+| 08-update-metrics-test-matrix | 3 | 7 min | 2 min |
 
 **Recent Trend:**
-- Last 3 plans: 3 min, 3 min, 6 min
+- Last 3 plans: 3 min, 3 min, 1 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -99,6 +99,8 @@ Recent decisions affecting current work:
 - **NEW:** Per-layer rank tracking with stricter thresholds for critical layers
 - **NEW:** Stall ratio = 1 - (flips / updates) measures gradient ineffectiveness
 - **NEW:** Return 0.0 stall ratio for zero updates (no gradient = no stall)
+- **NEW:** Configurable critical_threshold_multiplier (default 0.5) for classifier layers
+- **NEW:** get_threshold_for_layer() method for per-layer threshold lookup
 
 ### Pending Todos
 
@@ -133,7 +135,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 08-01-PLAN.md (Update tracking and stall ratio)
+Stopped at: Completed 08-03-PLAN.md (Classifier-specific thresholds)
 Resume file: None
 
 ## Next Steps
