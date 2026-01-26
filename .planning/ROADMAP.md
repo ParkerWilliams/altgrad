@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Custom Format Testing** - E1M6, E3M4, E7M0 experiments (E7M0 as negative result)
 - [x] **Phase 5: Manifold-Aware Optimizer** - Stiffness-preconditioned updates and geometry diagnostics
 - [x] **Phase 6: Analysis & Documentation** - Comparative analysis and failure mode documentation
+- [ ] **Phase 7: Flip Metrics & Rank Health Monitoring** - Weight flip counting, stable/effective rank tracking, and rank collapse early warning
 
 ## Phase Details
 
@@ -118,10 +119,26 @@ Plans:
 - [x] 06-01-PLAN.md — Analysis module: data loader, comparisons, failure analysis, report generator
 - [x] 06-02-PLAN.md — Generate reports (format_comparison.md, failure_modes.md, manifold_comparison.md)
 
+### Phase 7: Flip Metrics & Rank Health Monitoring
+**Goal**: Add weight flip counting, stable/effective rank tracking, and rank collapse early warning to enable analysis of discrete optimization dynamics
+**Depends on**: Phase 6
+**Requirements**: FLIP-01, FLIP-02, RANK-01, RANK-02, RANK-03
+**Success Criteria** (what must be TRUE):
+  1. Flip count metrics track how many weights change FP8 representation per step/epoch
+  2. Stable rank (||W||_F^2 / ||W||_2^2) computed for weight matrices during training
+  3. Effective rank (exp of normalized SV entropy) tracked per layer
+  4. Rank collapse early warning detects downward rank trends before catastrophic collapse
+  5. Classification-sensitive layers (classifier, attention.out_proj) have severity-aware monitoring
+**Plans**: 2 plans in 1 wave
+
+Plans:
+- [ ] 07-01-PLAN.md — Weight flip counting with WeightFlipTracker (FLIP-01, FLIP-02)
+- [ ] 07-02-PLAN.md — Rank health monitoring: stable rank, effective rank, collapse early warning (RANK-01, RANK-02, RANK-03)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -131,6 +148,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 4. Custom Format Testing | 3/3 | Complete | 2026-01-21 |
 | 5. Manifold-Aware Optimizer | 2/2 | Complete | 2026-01-22 |
 | 6. Analysis & Documentation | 2/2 | Complete | 2026-01-22 |
+| 7. Flip Metrics & Rank Health | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-20*
