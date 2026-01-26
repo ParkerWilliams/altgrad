@@ -4,7 +4,7 @@
 
 A small-scale experimental test bench for studying how different 8-bit floating-point datatypes (varying mantissa/exponent splits) affect transformer training stability, accuracy, and gradient behavior. The core innovation is a **manifold-aware optimizer** that treats the FP8 representation as a warped manifold of uniform bit-space, enabling updates that move by fixed ULPs rather than fixed real values.
 
-Built on nanoGPT, tested on EurLex legal documents, constrained to single H100 and ≤$20 compute.
+Built on nanoGPT, tested on EurLex legal documents, constrained to single H100 and $20 compute.
 
 ## Core Value
 
@@ -12,34 +12,51 @@ Built on nanoGPT, tested on EurLex legal documents, constrained to single H100 a
 
 If everything else fails, the test bench must produce clear data showing where each format fails (forward precision, gradient fidelity, or optimizer update) and whether the manifold-aware step delays or prevents that failure.
 
+## Current State
+
+**v1.0 shipped:** 2026-01-26
+
+Infrastructure complete and ready for H100 experiments:
+- 5 FP8 formats (E0M7, E1M6, E3M4, E5M2, E7M0) with STE gradient flow
+- nanoGPT trainer with EurLex dataset, W&B logging, checkpointing
+- QuantizedLinear wrappers with per-layer mixed precision
+- ManifoldAdamW and GridOptim optimizers
+- Flip metrics, rank health monitoring, stall ratio tracking
+- Analysis pipeline with report generation
+
+**Stats:** 13,416 lines Python, 18 source files, 319 tests passing
+
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+- FP8 format registry (E0M7, E1M6, E3M4, E5M2, E7M0) — v1.0
+- Quantize/dequantize with STE gradient override — v1.0
+- Per-tensor scaling with amax history — v1.0
+- Stability monitoring (overflow/underflow/NaN counters) — v1.0
+- Gradient statistics (norms, SNR, dead neurons) — v1.0
+- QuantizedLinear wrapper with model surgery — v1.0
+- Per-layer mixed precision config — v1.0
+- EurLex dataset integration — v1.0
+- ManifoldAdamW with stiffness preconditioning — v1.0
+- GridOptim with stochastic rounding — v1.0
+- Flip metrics and rank health monitoring — v1.0
+- Experiment config grid with W&B logging — v1.0
+- Analysis reports (format comparison, failure modes, manifold comparison) — v1.0
 
 ### Active
 
-- [ ] Custom FP8 implementations for E1M6, E3M4, E5M2, E7M0 formats
-- [ ] Simulated quantization (store FP32/BF16, quantize at forward/backward boundaries)
-- [ ] Stiffness factor calculation: `S = 2^(floor(log2|w|) - M)`
-- [ ] Manifold-aware optimizer step injected at optimizer.step()
-- [ ] Standard vs manifold-aware training mode toggle
-- [ ] Mixed precision by layer (attention vs classifier head)
-- [ ] EurLex dataset integration with nanoGPT
-- [ ] Metrics collection: F1, gradient norms, zero-update fraction, ULP statistics
-- [ ] Gradient cosine similarity vs FP32 reference (periodic comparison)
-- [ ] Overflow/underflow counters (NaN, Inf, flush-to-zero)
-- [ ] Experiment config grid (YAML/JSON)
-- [ ] Per-run logging (CSV or W&B)
-- [ ] Summary analysis identifying sweet-spot format and failure modes
+- [ ] Run BF16 baseline experiment on H100
+- [ ] Run format comparison experiments (E5M2, E3M4, E1M6, E0M7, E7M0)
+- [ ] Run manifold-aware vs standard A/B comparison
+- [ ] Regenerate analysis reports with real experiment data
+- [ ] Document findings answering core research question
 
 ### Out of Scope
 
 - Large-scale pretraining — diagnostic insight only, not SOTA
 - Multi-GPU scaling — single H100 constraint
 - Inference-only optimization — training focus
-- DCSBM synthetic data — real-world "jagged" loss landscapes required
 - Gradient-only quantization — defer unless needed
 - Optimizer state quantization — defer unless needed
 - Full convergence runs — short runs sufficient for trend visibility
@@ -102,8 +119,8 @@ pip install -r requirements.txt
 ## Constraints
 
 - **Hardware:** Single NVIDIA H100
-- **Budget:** ≤$20 total compute
-- **Model size:** ≤50M parameters
+- **Budget:** $20 total compute
+- **Model size:** 50M parameters
 - **Runtime:** Short runs (convergence trend, not full training)
 - **Primary goal:** Diagnostic insight, not absolute performance
 
@@ -111,12 +128,16 @@ pip install -r requirements.txt
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| nanoGPT over HuggingFace | Exposed training loop, vanilla PyTorch, easy optimizer injection | — Pending |
-| EurLex over WikiText/TinyStories | Jagged loss landscapes, real-world applicability, long context | — Pending |
-| Simulated FP8 over native kernels | Faster dev iteration, budget constraint, sufficient for diagnostic | — Pending |
-| E7M0 in v1 scope | Logarithmic limit validates stiffness theory at extreme | — Pending |
-| Mixed precision by layer in v1 | Key hypothesis: attention vs classifier head have different precision needs | — Pending |
-| Stiffness formula: 2^(floor(log2\|w\|) - M) | Captures mantissa-dependent ULP spacing, accounts for exponent | — Pending |
+| nanoGPT over HuggingFace | Exposed training loop, vanilla PyTorch, easy optimizer injection | Good — easy integration |
+| EurLex over WikiText/TinyStories | Jagged loss landscapes, real-world applicability, long context | Good — 18.7M train tokens |
+| Simulated FP8 over native kernels | Faster dev iteration, budget constraint, sufficient for diagnostic | Good — works on any GPU |
+| E7M0 in v1 scope | Logarithmic limit validates stiffness theory at extreme | Pending experiment |
+| Mixed precision by layer in v1 | Key hypothesis: attention vs classifier head have different precision needs | Pending experiment |
+| Stiffness formula: 2^(floor(log2\|w\|) - M) | Captures mantissa-dependent ULP spacing, accounts for exponent | Implemented in ManifoldAdamW |
+| E3M4 bias=1 | Range ~0.06 to ~124, covers typical weight magnitudes | Good |
+| Round-to-nearest-even | IEEE 754 standard for tie-breaking | Good |
+| Stiffness preconditioning before momentum | Ensures ULP-consistent updates | Implemented |
+| Stall ratio = 1 - (flips/updates) | Clear metric for gradient effectiveness | Good |
 
 ---
-*Last updated: 2025-01-20 after initialization*
+*Last updated: 2026-01-26 after v1.0 milestone*
