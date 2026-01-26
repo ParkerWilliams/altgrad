@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-20)
 
 **Core value:** Evidence-backed answer to which 8-bit floating-point format most benefits from geometry-aware updates, and why.
-**Current focus:** Phase 7 - Flip Metrics & Rank Health Monitoring
+**Current focus:** Phase 8 - Update Metrics & Test Matrix
 
 ## Current Position
 
-Phase: 7 of 7 (Flip Metrics & Rank Health Monitoring)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-25 - Completed 07-02-PLAN.md (Rank Health Monitoring)
+Phase: 8 of 8 (Update Metrics & Test Matrix)
+Plan: 2 of ? in current phase
+Status: In progress
+Last activity: 2026-01-26 - Completed 08-02-PLAN.md (GridOptim implementation)
 
-Progress: [###################] 100% (19/19 plans complete)
+Progress: [####################] 96% (21/22+ plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
-- Average duration: 10 min
-- Total execution time: 3.0 hours
+- Total plans completed: 21
+- Average duration: 9 min
+- Total execution time: 3.1 hours
 
 **By Phase:**
 
@@ -34,9 +34,10 @@ Progress: [###################] 100% (19/19 plans complete)
 | 05-manifold-aware-optimizer | 2 | 11 min | 6 min |
 | 06-analysis-documentation | 2 | 11 min | 6 min |
 | 07-flip-metrics-rank-health-monitoring | 2 | 11 min | 6 min |
+| 08-update-metrics-test-matrix | 2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 3 plans: 3 min, 5 min, 6 min
+- Last 3 plans: 3 min, 3 min, 6 min
 - Trend: Fast execution continuing
 
 *Updated after each plan completion*
@@ -96,6 +97,9 @@ Recent decisions affecting current work:
 - **NEW:** torch.linalg.svdvals for efficient SVD (10-50x faster than full SVD)
 - **NEW:** EMA warmup before trend detection to avoid initialization noise
 - **NEW:** Per-layer rank tracking with stricter thresholds for critical layers
+- **NEW:** Grid construction from torch.arange(-128,128).view(fp8_dtype), sorted and deduplicated
+- **NEW:** Rung clipping default 10 to prevent boundary NaN
+- **NEW:** GridOptim step() returns (flips, updates) tuple for metric disambiguation
 
 ### Pending Todos
 
@@ -123,15 +127,20 @@ Recent decisions affecting current work:
 |---|-------------|------|-----------|
 | 001 | Add virtual environment note to PROJECT.md | 2026-01-20 | [001-virtual-environment-note](./quick/001-virtual-environment-note/) |
 
+### Roadmap Evolution
+
+- Phase 8 added: Update Metrics & Test Matrix - disambiguate flips/updates/stalls, grid optimizer, classifier rank, test matrix
+
 ## Session Continuity
 
-Last session: 2026-01-25
-Stopped at: Completed 07-02-PLAN.md (Rank Health Monitoring) - Phase 7 complete
+Last session: 2026-01-26
+Stopped at: Completed 08-02-PLAN.md (GridOptim implementation)
 Resume file: None
 
 ## Next Steps
 
-1. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
-2. **Run experiments:** Execute all format comparison and manifold experiments
-3. **Regenerate reports:** `python scripts/generate_reports.py --project <wandb-project>`
-4. **Analyze results:** Use flip metrics and rank health monitoring to diagnose training issues
+1. **Plan Phase 8:** `/gsd:plan-phase 8` to break down update metrics and test matrix work
+2. **Execute Phase 8:** Implement disambiguated metrics, grid optimizer, test matrix
+3. **Deploy to RunPod:** Upload codebase to H100 instance for experiments
+4. **Run experiments:** Execute all format comparison and manifold experiments
+5. **Regenerate reports:** `python scripts/generate_reports.py --project <wandb-project>`
