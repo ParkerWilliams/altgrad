@@ -1,8 +1,7 @@
 """European legal text data preparation and batch loading.
 
-Prepares European legal text datasets in nanoGPT-style binary format for
-efficient training. Uses lex_glue/ecthr_a (European Court of Human Rights
-cases) as the data source - high-quality legal text similar to EurLex.
+Prepares EUR-Lex legal text dataset in nanoGPT-style binary format for
+efficient training.
 
 Tokens are stored as uint16 memory-mapped files for fast random access
 without per-batch tokenization overhead.
@@ -17,19 +16,18 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
+import tiktoken
 import torch
+from datasets import load_dataset
 from torch import Tensor
 
 
 def prepare_eurlex(data_dir: str = "data/eurlex", num_proc: int = 8) -> dict:
-    """Generate training data as memory-mapped binary files.
-
-    Creates random token sequences for training. This allows testing the
-    FP8 quantization infrastructure without external dataset dependencies.
+    """Tokenize EUR-Lex legal text and save as memory-mapped binary files.
 
     Args:
         data_dir: Directory to save binary files. Created if not exists.
-        num_proc: Unused, kept for API compatibility.
+        num_proc: Number of processes for parallel tokenization.
 
     Returns:
         Dictionary with token counts per split:
@@ -38,29 +36,57 @@ def prepare_eurlex(data_dir: str = "data/eurlex", num_proc: int = 8) -> dict:
     data_path = Path(data_dir)
     data_path.mkdir(parents=True, exist_ok=True)
 
-    # Generate random tokens (vocab size 50257 for GPT-2 compatibility)
-    vocab_size = 50257
-    train_tokens = 10_000_000  # 10M tokens
-    val_tokens = 500_000  # 500K tokens
+    # Load EUR-Lex dataset
+    print("Loading EUR-Lex dataset...")
+    dataset = load_dataset("NLP-AUEB/eurlex", split="train", trust_remote_code=True)
+
+    # Initialize GPT-2 tokenizer (50257 vocab)
+    enc = tiktoken.get_encoding("gpt2")
+    eot_token = enc.eot_token
+
+    def tokenize(example):
+        """Tokenize text and append EOT token."""
+        text = example["text"]
+        if not text or not text.strip():
+            return {"ids": [], "len": 0}
+        ids = enc.encode_ordinary(text)
+        ids.append(eot_token)
+        return {"ids": ids, "len": len(ids)}
+
+    # Tokenize
+    print(f"Tokenizing with {num_proc} processes...")
+    tokenized = dataset.map(
+        tokenize,
+        remove_columns=dataset.column_names,
+        num_proc=num_proc,
+        desc="Tokenizing",
+    )
+    tokenized = tokenized.filter(lambda x: x["len"] > 0)
+
+    # Split into train/val (90/10)
+    tokenized = tokenized.train_test_split(test_size=0.1, seed=42)
 
     stats = {}
-    for split_name, num_tokens in [("train", train_tokens), ("validation", val_tokens)]:
+    for split_name, split_key in [("train", "train"), ("validation", "test")]:
+        dset = tokenized[split_key]
+        total_tokens = sum(dset["len"])
+
         out_name = "train.bin" if split_name == "train" else "val.bin"
         out_path = data_path / out_name
 
-        print(f"Generating {split_name} ({num_tokens:,} tokens) to {out_path}...")
+        print(f"Writing {split_name} ({total_tokens:,} tokens) to {out_path}...")
 
-        # Create random tokens
-        rng = np.random.default_rng(42)
-        tokens = rng.integers(0, vocab_size, size=num_tokens, dtype=np.uint16)
+        arr = np.memmap(out_path, dtype=np.uint16, mode="w+", shape=(total_tokens,))
 
-        # Write to memmap
-        arr = np.memmap(out_path, dtype=np.uint16, mode="w+", shape=(num_tokens,))
-        arr[:] = tokens
+        idx = 0
+        for example in dset:
+            ids = np.array(example["ids"], dtype=np.uint16)
+            arr[idx : idx + len(ids)] = ids
+            idx += len(ids)
+
         arr.flush()
-
-        stats[split_name] = num_tokens
-        print(f"  {split_name}: {num_tokens:,} tokens")
+        stats[split_name] = total_tokens
+        print(f"  {split_name}: {total_tokens:,} tokens")
 
     return stats
 
