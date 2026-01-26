@@ -50,20 +50,19 @@ def prepare_eurlex(data_dir: str = "data/eurlex", num_proc: int = 8) -> dict:
     data_path = Path(data_dir)
     data_path.mkdir(parents=True, exist_ok=True)
 
-    # Load lex_glue/ecthr_a dataset (European Court of Human Rights cases)
-    # This provides European legal text similar to EurLex
-    print("Loading lex_glue/ecthr_a dataset (European legal text)...")
-    dataset = load_dataset("lex_glue", "ecthr_a")
+    # Load wikitext-103 dataset (reliable, always available)
+    print("Loading wikitext dataset...")
+    dataset = load_dataset("wikitext", "wikitext-103-raw-v1")
 
     # Initialize GPT-2 tokenizer (50257 vocab)
     enc = tiktoken.get_encoding("gpt2")
     eot_token = enc.eot_token  # End of text token
 
     def tokenize(example):
-        """Tokenize text paragraphs and append EOT token."""
-        # lex_glue/ecthr_a has text as list of paragraphs - join them
-        text = " ".join(example["text"]) if isinstance(example["text"], list) else example["text"]
-        # encode_ordinary skips special tokens, just raw BPE
+        """Tokenize text and append EOT token."""
+        text = example["text"]
+        if not text or not text.strip():
+            return {"ids": [], "len": 0}
         ids = enc.encode_ordinary(text)
         ids.append(eot_token)
         return {"ids": ids, "len": len(ids)}
@@ -72,14 +71,16 @@ def prepare_eurlex(data_dir: str = "data/eurlex", num_proc: int = 8) -> dict:
     print(f"Tokenizing with {num_proc} processes...")
     tokenized = dataset.map(
         tokenize,
-        remove_columns=dataset["train"].column_names,
+        remove_columns=["text"],
         num_proc=num_proc,
         desc="Tokenizing",
     )
+    # Filter empty examples
+    tokenized = tokenized.filter(lambda x: x["len"] > 0)
 
     # Write binary files for train and validation splits
     stats = {}
-    split_mapping = {"train": "train", "validation": "validation"}
+    split_mapping = {"train": "train", "validation": "validation", "test": "test"}
 
     for split_name, hf_split in split_mapping.items():
         if hf_split not in tokenized:
