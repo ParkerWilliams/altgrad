@@ -72,6 +72,17 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ANAL-02**: Failure mode documentation (where each format fails: forward, backward, optimizer)
 - [x] **ANAL-03**: Manifold-aware vs standard comparison report
 
+### Flip Metrics
+
+- [x] **FLIP-01**: Weight flip counting (track when quantized weights change FP8 representation)
+- [x] **FLIP-02**: Flip rate per layer/step/epoch with W&B logging
+
+### Rank Health Monitoring
+
+- [x] **RANK-01**: Stable rank computation: ||W||_F² / ||W||_2² for weight matrices
+- [x] **RANK-02**: Effective rank tracking (singular values needed for 99% variance)
+- [x] **RANK-03**: Rank collapse early warning (detect downward trends before catastrophic collapse)
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -147,12 +158,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANAL-01 | Phase 6 | Complete |
 | ANAL-02 | Phase 6 | Complete |
 | ANAL-03 | Phase 6 | Complete |
+| FLIP-01 | Phase 7 | Complete |
+| FLIP-02 | Phase 7 | Complete |
+| RANK-01 | Phase 7 | Complete |
+| RANK-02 | Phase 7 | Complete |
+| RANK-03 | Phase 7 | Complete |
 
 **Coverage:**
-- v1 requirements: 39 total
-- Mapped to phases: 39
+- v1 requirements: 44 total
+- Mapped to phases: 44
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-25 after Phase 6 completion (milestone complete)*
+*Last updated: 2026-01-25 after Phase 7 added*

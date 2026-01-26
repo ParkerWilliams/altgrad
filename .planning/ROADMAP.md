@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Custom Format Testing** - E1M6, E3M4, E7M0 experiments (E7M0 as negative result)
 - [x] **Phase 5: Manifold-Aware Optimizer** - Stiffness-preconditioned updates and geometry diagnostics
 - [x] **Phase 6: Analysis & Documentation** - Comparative analysis and failure mode documentation
-- [ ] **Phase 7: Flip Metrics & Rank Health Monitoring** - Weight flip counting, stable/effective rank tracking, and rank collapse early warning
+- [x] **Phase 7: Flip Metrics & Rank Health Monitoring** - Weight flip counting, stable/effective rank tracking, and rank collapse early warning
 
 ## Phase Details
 
@@ -132,8 +132,8 @@ Plans:
 **Plans**: 2 plans in 1 wave
 
 Plans:
-- [ ] 07-01-PLAN.md — Weight flip counting with WeightFlipTracker (FLIP-01, FLIP-02)
-- [ ] 07-02-PLAN.md — Rank health monitoring: stable rank, effective rank, collapse early warning (RANK-01, RANK-02, RANK-03)
+- [x] 07-01-PLAN.md — Weight flip counting with WeightFlipTracker (FLIP-01, FLIP-02)
+- [x] 07-02-PLAN.md — Rank health monitoring: stable rank, effective rank, collapse early warning (RANK-01, RANK-02, RANK-03)
 
 ## Progress
 
@@ -148,7 +148,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Custom Format Testing | 3/3 | Complete | 2026-01-21 |
 | 5. Manifold-Aware Optimizer | 2/2 | Complete | 2026-01-22 |
 | 6. Analysis & Documentation | 2/2 | Complete | 2026-01-22 |
-| 7. Flip Metrics & Rank Health | 0/2 | Not started | - |
+| 7. Flip Metrics & Rank Health | 2/2 | Complete | 2026-01-25 |
 
 ---
 *Roadmap created: 2026-01-20*
