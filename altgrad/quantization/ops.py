@@ -247,12 +247,9 @@ def _quantize_floating_point(x: Tensor, format: FP8Format) -> Tensor:
         # If no NaN support, treat as zero
         output = torch.where(nan_mask, torch.zeros_like(x_flat), output)
 
-    # Handle overflow (values exceeding max representable)
+    # Handle overflow (values exceeding max representable) - always clamp to avoid inf propagation
     overflow_mask = (abs_x > max_representable) & ~inf_mask & ~nan_mask
-    if format.has_inf:
-        output = torch.where(overflow_mask, sign * float('inf'), output)
-    else:
-        output = torch.where(overflow_mask, sign * max_representable, output)
+    output = torch.where(overflow_mask, sign * max_representable, output)
 
     # Handle underflow to zero (values too small to represent)
     underflow_mask = (abs_x < min_denorm / 2) & ~nan_mask

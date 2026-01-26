@@ -106,7 +106,10 @@ def compute_scale(amax: float, format: FP8Format, scale_min: float = 1e-10) -> f
         >>> scale = compute_scale(10.0, E5M2)
         >>> # Maps tensor in [-10, 10] to E5M2 range
     """
-    scale = amax / format.max_representable_value
+    if amax < scale_min:
+        return scale_min
+    # Add margin to avoid overflow at boundary due to float precision
+    scale = (amax * 1.01) / format.max_representable_value
     return max(scale, scale_min)
 
 
