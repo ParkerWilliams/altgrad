@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-20)
 ## Current Position
 
 Phase: 8 of 8 (Update Metrics & Test Matrix)
-Plan: 2 of ? in current phase
+Plan: 1 of ? in current phase
 Status: In progress
-Last activity: 2026-01-26 - Completed 08-02-PLAN.md (GridOptim implementation)
+Last activity: 2026-01-26 - Completed 08-01-PLAN.md (Update tracking and stall ratio)
 
-Progress: [####################] 96% (21/22+ plans complete)
+Progress: [####################] 96% (20/21+ plans complete)
 
 ## Performance Metrics
 
@@ -97,9 +97,8 @@ Recent decisions affecting current work:
 - **NEW:** torch.linalg.svdvals for efficient SVD (10-50x faster than full SVD)
 - **NEW:** EMA warmup before trend detection to avoid initialization noise
 - **NEW:** Per-layer rank tracking with stricter thresholds for critical layers
-- **NEW:** Grid construction from torch.arange(-128,128).view(fp8_dtype), sorted and deduplicated
-- **NEW:** Rung clipping default 10 to prevent boundary NaN
-- **NEW:** GridOptim step() returns (flips, updates) tuple for metric disambiguation
+- **NEW:** Stall ratio = 1 - (flips / updates) measures gradient ineffectiveness
+- **NEW:** Return 0.0 stall ratio for zero updates (no gradient = no stall)
 
 ### Pending Todos
 
@@ -134,7 +133,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-26
-Stopped at: Completed 08-02-PLAN.md (GridOptim implementation)
+Stopped at: Completed 08-01-PLAN.md (Update tracking and stall ratio)
 Resume file: None
 
 ## Next Steps
