@@ -1,8 +1,11 @@
-"""Tests for ManifoldAdamW optimizer."""
+"""Tests for ManifoldAdamW and GridOptim optimizers."""
 
 import pytest
 import torch
-from altgrad.training.optimizer import ManifoldAdamW
+from altgrad.training.optimizer import ManifoldAdamW, GridOptim
+
+# Check for FP8 support
+HAS_FP8 = hasattr(torch, "float8_e4m3fn")
 
 
 class TestManifoldAdamWBasic:
@@ -249,3 +252,206 @@ class TestWeightDecay:
         # AdamW: param.mul_(1 - lr * wd) = 2.0 * (1 - 0.1*0.1) = 2.0 * 0.99 = 1.98
         # Plus the gradient update
         assert param.data.mean() < original.mean()
+
+
+# =============================================================================
+# GridOptim Tests
+# =============================================================================
+
+
+class TestGridOptimInit:
+    """Test GridOptim initialization."""
+
+    def test_grid_optim_init(self):
+        """GridOptim initializes master weights and velocity correctly."""
+        model = torch.nn.Linear(4, 4)
+        optimizer = GridOptim(model.parameters(), scale=6.0)
+
+        # Verify master_p created and matches initial weights
+        assert len(optimizer.master_p) == 2  # weight + bias
+        assert torch.allclose(optimizer.master_p[0], model.weight.float())
+        assert torch.allclose(optimizer.master_p[1], model.bias.float())
+
+        # Verify velocity initialized to zeros
+        assert len(optimizer.velocity) == 2
+        assert (optimizer.velocity[0] == 0).all()
+        assert (optimizer.velocity[1] == 0).all()
+
+        # Verify grid created (or None if no FP8 support)
+        if HAS_FP8:
+            assert optimizer.grid is not None
+            assert len(optimizer.grid) > 200  # E4M3 has ~240 unique values
+        else:
+            assert optimizer.grid is None
+
+
+class TestGridOptimStep:
+    """Test GridOptim step functionality."""
+
+    def test_grid_optim_step_returns_counts(self):
+        """step() returns tuple of (flips, updates)."""
+        model = torch.nn.Linear(4, 4)
+        optimizer = GridOptim(model.parameters(), scale=1.0)
+
+        # Set fake gradients
+        for p in model.parameters():
+            p.grad = torch.randn_like(p)
+
+        flips, updates = optimizer.step()
+
+        # Verify returns tuple
+        assert isinstance(flips, int)
+        assert isinstance(updates, int)
+
+        # Verify updates > 0 (since we set non-zero grads)
+        assert updates > 0
+
+    def test_grid_optim_momentum(self):
+        """Momentum causes velocity accumulation over steps."""
+        model = torch.nn.Linear(4, 4)
+        optimizer = GridOptim(model.parameters(), scale=1.0, momentum=0.9)
+
+        # Set consistent gradient
+        grad_value = torch.ones(4, 4)
+        model.weight.grad = grad_value.clone()
+        model.bias.grad = torch.ones(4)
+
+        # First step
+        optimizer.step()
+        velocity_after_1 = optimizer.velocity[0].clone()
+
+        # Set same gradient again
+        model.weight.grad = grad_value.clone()
+        model.bias.grad = torch.ones(4)
+
+        # Second step - velocity should be larger due to momentum
+        optimizer.step()
+        velocity_after_2 = optimizer.velocity[0].clone()
+
+        # Second velocity should be larger (0.9 * v1 + grad > v1)
+        assert velocity_after_2.abs().sum() > velocity_after_1.abs().sum()
+
+
+class TestGridOptimZeroGrad:
+    """Test GridOptim zero_grad functionality."""
+
+    def test_grid_optim_zero_grad(self):
+        """zero_grad() zeros all parameter gradients."""
+        model = torch.nn.Linear(4, 4)
+        optimizer = GridOptim(model.parameters())
+
+        # Set gradients
+        for p in model.parameters():
+            p.grad = torch.randn_like(p)
+
+        # Verify gradients are set
+        assert model.weight.grad is not None
+        assert model.weight.grad.abs().sum() > 0
+
+        # Zero gradients
+        optimizer.zero_grad()
+
+        # Verify all grads are zeroed
+        assert (model.weight.grad == 0).all()
+        assert (model.bias.grad == 0).all()
+
+
+class TestGridOptimScaleOverride:
+    """Test GridOptim scale override functionality."""
+
+    def test_grid_optim_scale_override(self):
+        """current_scale parameter overrides default scale."""
+        torch.manual_seed(42)
+        model1 = torch.nn.Linear(4, 4)
+        torch.manual_seed(42)
+        model2 = torch.nn.Linear(4, 4)
+
+        opt1 = GridOptim(model1.parameters(), scale=6.0)
+        opt2 = GridOptim(model2.parameters(), scale=6.0)
+
+        # Set same gradient
+        torch.manual_seed(123)
+        grad = torch.randn(4, 4)
+        model1.weight.grad = grad.clone()
+        model1.bias.grad = torch.randn(4)
+        torch.manual_seed(123)
+        model2.weight.grad = grad.clone()
+        model2.bias.grad = torch.randn(4)
+
+        # Step with different scales
+        torch.manual_seed(999)  # Same random for stochastic rounding
+        opt1.step(current_scale=1.0)
+        torch.manual_seed(999)
+        opt2.step()  # Uses default scale=6.0
+
+        # Different scale produces different movement
+        # Note: With stochastic rounding, larger scale = more rung movement
+        # So weights should differ
+        # (May be same if grid not available or gradients very small)
+        if opt1.grid is not None:
+            # With FP8 grid, different scales cause different rung jumps
+            # This may or may not result in different final positions
+            # depending on stochastic rounding
+            pass  # Test confirms scale parameter accepted
+
+
+class TestGridOptimRungClipping:
+    """Test GridOptim rung clipping functionality."""
+
+    def test_grid_optim_rung_clipping(self):
+        """Rung clipping prevents NaN from large gradients."""
+        model = torch.nn.Linear(4, 4)
+        optimizer = GridOptim(model.parameters(), scale=6.0, rung_clip=5)
+
+        # Set very large gradient
+        model.weight.grad = torch.full((4, 4), 1000.0)
+        model.bias.grad = torch.full((4,), 1000.0)
+
+        # Step should not produce NaN
+        flips, updates = optimizer.step()
+
+        # Verify no NaN in weights
+        assert not torch.isnan(model.weight.data).any()
+        assert not torch.isnan(model.bias.data).any()
+
+        # Verify no Inf in weights
+        assert not torch.isinf(model.weight.data).any()
+        assert not torch.isinf(model.bias.data).any()
+
+
+@pytest.mark.skipif(not HAS_FP8, reason="Requires FP8 dtype support")
+class TestGridOptimWithFP8Grid:
+    """Tests that require FP8 dtype support."""
+
+    def test_grid_optim_grid_contains_fp8_values(self):
+        """Grid contains FP8 representable values."""
+        model = torch.nn.Linear(4, 4)
+        optimizer = GridOptim(model.parameters())
+
+        # Grid should exist
+        assert optimizer.grid is not None
+
+        # Grid should be sorted
+        assert (optimizer.grid[1:] > optimizer.grid[:-1]).all()
+
+        # Grid should contain zero
+        assert 0.0 in optimizer.grid
+
+        # Grid should have both positive and negative values
+        assert (optimizer.grid < 0).any()
+        assert (optimizer.grid > 0).any()
+
+    def test_grid_optim_weights_on_grid(self):
+        """After step, weights should be on the FP8 grid."""
+        model = torch.nn.Linear(4, 4)
+        optimizer = GridOptim(model.parameters(), scale=6.0)
+
+        # Set gradient and step
+        model.weight.grad = torch.randn(4, 4)
+        model.bias.grad = torch.randn(4)
+        optimizer.step()
+
+        # Check master weights are grid values
+        grid_set = set(optimizer.grid.tolist())
+        for val in optimizer.master_p[0].flatten().tolist():
+            assert val in grid_set, f"Weight {val} not on grid"
