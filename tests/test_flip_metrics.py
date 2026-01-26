@@ -1,7 +1,11 @@
 """Tests for weight flip metrics."""
 import pytest
 import torch
-from altgrad.quantization.flip_metrics import WeightFlipTracker, compute_flip_rate
+from altgrad.quantization.flip_metrics import (
+    WeightFlipTracker,
+    compute_flip_rate,
+    compute_stall_ratio,
+)
 from altgrad.quantization.formats import E5M2, E3M4
 
 
@@ -146,3 +150,87 @@ class TestWeightFlipTracker:
 
         tracker.compute_flips_post_step("layer1", w, E5M2, scale)
         assert "layer1" not in tracker.prev_quantized
+
+
+class TestComputeStallRatio:
+    """Tests for compute_stall_ratio function."""
+
+    def test_compute_stall_ratio_basic(self):
+        """Test basic stall ratio calculations."""
+        # 10 flips from 100 updates = 90% stall
+        assert compute_stall_ratio(10, 100) == 0.9
+        # 100 flips from 100 updates = 0% stall (all flip)
+        assert compute_stall_ratio(100, 100) == 0.0
+        # 0 flips from 100 updates = 100% stall (no flips)
+        assert compute_stall_ratio(0, 100) == 1.0
+        # 0 updates = 0% stall (no gradient = no stall by definition)
+        assert compute_stall_ratio(0, 0) == 0.0
+
+
+class TestTrackerUpdateCounts:
+    """Tests for WeightFlipTracker update tracking."""
+
+    def test_tracker_update_counts(self):
+        """Test that update counts track non-zero gradients."""
+        tracker = WeightFlipTracker()
+        w = torch.randn(100)
+        scale = torch.tensor(1.0)
+
+        # Create gradient with exactly 50 non-zero elements
+        grad = torch.zeros(100)
+        grad[:50] = torch.randn(50)  # First 50 non-zero
+
+        tracker.snapshot_pre_step("layer1", w, E5M2, scale, grad=grad)
+        counts = tracker.get_update_counts()
+        assert counts["layer1"] == 50
+
+    def test_tracker_stall_ratios(self):
+        """Test stall ratio calculation from tracker state."""
+        tracker = WeightFlipTracker()
+        w = torch.tensor([1.0, 2.0, 3.0, 4.0])
+        scale = torch.tensor(1.0)
+
+        # Create gradient with all non-zero (4 updates)
+        grad = torch.ones(4)
+
+        tracker.snapshot_pre_step("layer1", w, E5M2, scale, grad=grad)
+        # Modify weights to cause 2 flips (half the elements)
+        w_after = w.clone()
+        w_after[:2] = w[:2] * 10.0  # Change first 2 significantly
+
+        flips = tracker.compute_flips_post_step("layer1", w_after, E5M2, scale)
+        ratios = tracker.get_stall_ratios()
+
+        # 2 flips / 4 updates = 50% stall rate
+        assert "layer1" in ratios
+        # Stall = 1 - (flips / updates), so if 2 flips from 4 updates => 0.5 stall
+        assert ratios["layer1"] == 1.0 - (flips / 4)
+
+    def test_tracker_stall_ratio_no_updates(self):
+        """Test stall ratio with zero gradient returns 0.0 (not NaN)."""
+        tracker = WeightFlipTracker()
+        w = torch.tensor([1.0, 2.0, 3.0])
+        scale = torch.tensor(1.0)
+
+        # Zero gradient = no updates
+        grad = torch.zeros(3)
+
+        tracker.snapshot_pre_step("layer1", w, E5M2, scale, grad=grad)
+        tracker.compute_flips_post_step("layer1", w, E5M2, scale)
+
+        ratios = tracker.get_stall_ratios()
+        # No updates = 0% stall by definition
+        assert ratios["layer1"] == 0.0
+
+    def test_tracker_reset_clears_updates(self):
+        """Test that reset() clears update_counts."""
+        tracker = WeightFlipTracker()
+        w = torch.tensor([1.0, 2.0])
+        scale = torch.tensor(1.0)
+        grad = torch.ones(2)
+
+        tracker.snapshot_pre_step("layer1", w, E5M2, scale, grad=grad)
+        assert tracker.get_update_counts() == {"layer1": 2}
+
+        tracker.reset()
+        assert tracker.get_update_counts() == {}
