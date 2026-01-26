@@ -68,9 +68,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Analysis Output
 
-- [ ] **ANAL-01**: Summary analysis identifying sweet-spot format per layer type
-- [ ] **ANAL-02**: Failure mode documentation (where each format fails: forward, backward, optimizer)
-- [ ] **ANAL-03**: Manifold-aware vs standard comparison report
+- [x] **ANAL-01**: Summary analysis identifying sweet-spot format per layer type
+- [x] **ANAL-02**: Failure mode documentation (where each format fails: forward, backward, optimizer)
+- [x] **ANAL-03**: Manifold-aware vs standard comparison report
 
 ## v2 Requirements
 
@@ -144,9 +144,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXPR-02 | Phase 2 | Complete |
 | EXPR-03 | Phase 2 | Complete |
 | EXPR-04 | Phase 3 | Complete |
-| ANAL-01 | Phase 6 | Pending |
-| ANAL-02 | Phase 6 | Pending |
-| ANAL-03 | Phase 6 | Pending |
+| ANAL-01 | Phase 6 | Complete |
+| ANAL-02 | Phase 6 | Complete |
+| ANAL-03 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 39 total
@@ -155,4 +155,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-20*
-*Last updated: 2026-01-22 after Phase 5 completion*
+*Last updated: 2026-01-25 after Phase 6 completion (milestone complete)*
