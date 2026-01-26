@@ -71,6 +71,16 @@ from altgrad.quantization.advanced_diagnostics import (
     ulp_statistics,
     gradient_stiffness_correlation,
 )
+from altgrad.quantization.flip_metrics import (
+    WeightFlipTracker,
+    compute_flip_rate,
+)
+from altgrad.quantization.rank_health import (
+    compute_stable_rank,
+    compute_effective_rank,
+    RankTrendDetector,
+    RankHealthMonitor,
+)
 
 __all__ = [
     # Formats
@@ -103,4 +113,7 @@ __all__ = [
     "compute_ulp_distance",
     "ulp_statistics",
     "gradient_stiffness_correlation",
+    # Flip Metrics
+    "WeightFlipTracker",
+    "compute_flip_rate",
 ]
