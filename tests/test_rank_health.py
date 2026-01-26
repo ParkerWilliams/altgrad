@@ -215,3 +215,88 @@ class TestComputeRankStats:
         assert stats["effective_rank/mean"] == 0.0
         assert stats["stable_rank/min"] == 0.0
         assert stats["effective_rank/min"] == 0.0
+
+
+class TestClassifierSpecificThresholds:
+    """Tests for classifier-specific threshold behavior."""
+
+    def test_get_threshold_for_layer_critical(self):
+        """Critical layers get stricter threshold."""
+        monitor = RankHealthMonitor(
+            warn_threshold=0.3, critical_threshold_multiplier=0.5
+        )
+        # lm_head and c_proj are default critical layers
+        assert monitor.get_threshold_for_layer("lm_head.weight") == 0.15
+        assert monitor.get_threshold_for_layer("c_proj.weight") == 0.15
+
+    def test_get_threshold_for_layer_non_critical(self):
+        """Non-critical layers get standard threshold."""
+        monitor = RankHealthMonitor(
+            warn_threshold=0.3, critical_threshold_multiplier=0.5
+        )
+        # These are not critical layers
+        assert monitor.get_threshold_for_layer("encoder.layer.0.weight") == 0.3
+        assert monitor.get_threshold_for_layer("mlp.fc1.weight") == 0.3
+
+    def test_critical_threshold_multiplier_custom(self):
+        """Custom multiplier changes critical layer threshold."""
+        monitor = RankHealthMonitor(
+            warn_threshold=0.3, critical_threshold_multiplier=0.25
+        )
+        # 0.3 * 0.25 = 0.075
+        assert monitor.get_threshold_for_layer("lm_head.weight") == 0.075
+
+    def test_check_warnings_uses_stricter_threshold(self):
+        """check_warnings() uses per-layer threshold from get_threshold_for_layer()."""
+        # Create monitor with specific thresholds
+        monitor = RankHealthMonitor(
+            log_interval=5,
+            warn_threshold=0.3,
+            critical_threshold_multiplier=0.5,
+        )
+
+        # Simulate rank metrics for two layers
+        # Initial rank values (warmup phase)
+        initial_ranks = {
+            "lm_head.weight": {"stable_rank": 10.0, "effective_rank": 10.0, "spectral_norm": 1.0},
+            "encoder.weight": {"stable_rank": 10.0, "effective_rank": 10.0, "spectral_norm": 1.0},
+        }
+
+        # Warmup: 5 calls to establish baseline
+        for _ in range(6):
+            monitor.check_warnings(initial_ranks)
+
+        # Now simulate 20% drop (between 0.15 and 0.30 thresholds)
+        # lm_head threshold is 0.15, should warn at 20% drop
+        # encoder threshold is 0.30, should NOT warn at 20% drop
+        dropped_ranks = {
+            "lm_head.weight": {"stable_rank": 8.0, "effective_rank": 8.0, "spectral_norm": 1.0},
+            "encoder.weight": {"stable_rank": 8.0, "effective_rank": 8.0, "spectral_norm": 1.0},
+        }
+
+        # Feed dropped values until warning triggers
+        warnings = []
+        for _ in range(20):
+            warnings.extend(monitor.check_warnings(dropped_ranks))
+
+        # lm_head should warn (20% drop > 15% threshold)
+        lm_head_warnings = [w for w in warnings if "lm_head" in w]
+        encoder_warnings = [w for w in warnings if "encoder" in w]
+
+        assert len(lm_head_warnings) > 0, "lm_head should warn at 20% drop (threshold 15%)"
+        assert len(encoder_warnings) == 0, "encoder should NOT warn at 20% drop (threshold 30%)"
+
+    def test_custom_critical_layers(self):
+        """Custom critical_layers list overrides defaults."""
+        monitor = RankHealthMonitor(
+            warn_threshold=0.3,
+            critical_layers=["classifier", "output"],
+            critical_threshold_multiplier=0.5,
+        )
+
+        # Custom critical layers get stricter threshold
+        assert monitor.get_threshold_for_layer("classifier.weight") == 0.15
+        assert monitor.get_threshold_for_layer("output.weight") == 0.15
+
+        # Default critical layers (lm_head) should NOT get stricter threshold
+        assert monitor.get_threshold_for_layer("lm_head.weight") == 0.3
