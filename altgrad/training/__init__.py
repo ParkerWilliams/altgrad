@@ -43,7 +43,7 @@ from altgrad.training.format_runner import (
     DiagnosticSnapshot,
     run_format_experiment,
 )
-from altgrad.training.optimizer import ManifoldAdamW
+from altgrad.training.optimizer import ManifoldAdamW, GridOptim
 
 __all__ = [
     # Model
@@ -77,4 +77,5 @@ __all__ = [
     "run_format_experiment",
     # Optimizer
     "ManifoldAdamW",
+    "GridOptim",
 ]

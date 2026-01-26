@@ -192,6 +192,130 @@ class ManifoldAdamW(Optimizer):
         state["bit_position"] += delta_ulps
 
 
+class GridOptim:
+    """Grid-based optimizer with FP32 master weights and stochastic rounding.
+
+    Maintains FP32 master weights and projects to FP8 grid using stochastic
+    rounding in rung space. This approach gives explicit control over discrete
+    weight transitions.
+
+    Args:
+        params: Iterable of model parameters
+        scale: Learning rate in rung units (default: 6.0)
+        momentum: SGD momentum coefficient (default: 0.9)
+        weight_decay: L2 penalty coefficient (default: 1e-4)
+        rung_clip: Maximum rung movement per step (default: 10)
+        fp8_dtype: FP8 dtype for grid construction (default: torch.float8_e4m3fn)
+        device: Device for grid tensor (default: "cuda" if available)
+
+    Example:
+        >>> optimizer = GridOptim(model.parameters(), scale=6.0)
+        >>> flips, updates = optimizer.step()
+    """
+
+    def __init__(
+        self,
+        params,
+        scale: float = 6.0,
+        momentum: float = 0.9,
+        weight_decay: float = 1e-4,
+        rung_clip: int = 10,
+        fp8_dtype=None,
+        device=None,
+    ):
+        self.params = list(params)
+        self.scale = scale
+        self.momentum = momentum
+        self.wd = weight_decay
+        self.rung_clip = rung_clip
+
+        # Determine device
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
+
+        # Create FP32 master weights (copy of parameters)
+        self.master_p = [p.detach().clone().float().to(device) for p in self.params]
+
+        # Initialize velocity (momentum buffer)
+        self.velocity = [torch.zeros_like(p) for p in self.master_p]
+
+        # Build FP8 grid from all representable values
+        fp8_dtype = fp8_dtype or getattr(torch, "float8_e4m3fn", None)
+        if fp8_dtype is not None:
+            raw_bits = torch.arange(-128, 128, dtype=torch.int8)
+            all_floats = raw_bits.view(fp8_dtype).to(torch.float32)
+            clean = all_floats[~torch.isnan(all_floats) & ~torch.isinf(all_floats)]
+            self.grid = torch.sort(torch.unique(clean))[0].to(device)
+        else:
+            self.grid = None  # Fallback for testing without FP8 support
+
+    @torch.no_grad()
+    def step(self, current_scale: float | None = None) -> tuple[int, int]:
+        """Perform single optimization step.
+
+        Args:
+            current_scale: Override scale for this step (e.g., for schedules)
+
+        Returns:
+            Tuple of (flips, updates) where:
+            - flips: Number of FP8 values that changed
+            - updates: Number of non-zero gradient elements applied
+        """
+        flips, updates = 0, 0
+        scale = current_scale if current_scale is not None else self.scale
+
+        for i, p in enumerate(self.params):
+            if p.grad is None:
+                continue
+
+            old_data = p.data.clone()
+            grad = p.grad.to(torch.float32)
+
+            # Count updates (non-zero gradient elements)
+            updates += (grad.abs() > 1e-10).sum().item()
+
+            # Weight decay
+            if self.wd != 0:
+                grad.add_(self.master_p[i], alpha=self.wd)
+
+            # Momentum
+            self.velocity[i] = self.momentum * self.velocity[i] + grad
+
+            if self.grid is not None:
+                # Grid-based update
+                indices = torch.searchsorted(self.grid, self.master_p[i].contiguous())
+                v_rungs = self.velocity[i] * scale
+
+                # CRITICAL: Clip to prevent NaN at grid boundaries
+                v_rungs = torch.clamp(v_rungs, -self.rung_clip, self.rung_clip)
+
+                # Stochastic rounding
+                v_rounded = torch.floor(v_rungs + torch.rand_like(v_rungs)).to(torch.int32)
+
+                # New grid indices (subtract for descent)
+                new_indices = torch.clamp(indices - v_rounded, 0, len(self.grid) - 1)
+                new_floats = self.grid[new_indices.long()].view(p.shape)
+
+                self.master_p[i].copy_(new_floats)
+                p.data.copy_(new_floats)
+            else:
+                # Fallback: Euclidean update
+                self.master_p[i].sub_(scale * self.velocity[i])
+                p.data.copy_(self.master_p[i])
+
+            flips += (p.data != old_data).sum().item()
+
+        return flips, updates
+
+    def zero_grad(self) -> None:
+        """Zero all parameter gradients."""
+        for p in self.params:
+            if p.grad is not None:
+                p.grad.zero_()
+
+
 __all__ = [
     "ManifoldAdamW",
+    "GridOptim",
 ]
