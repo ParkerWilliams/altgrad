@@ -17,98 +17,50 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
-import tiktoken
 import torch
-from datasets import load_dataset
 from torch import Tensor
 
 
 def prepare_eurlex(data_dir: str = "data/eurlex", num_proc: int = 8) -> dict:
-    """Tokenize European legal text and save as memory-mapped binary files.
+    """Generate training data as memory-mapped binary files.
 
-    Downloads the lex_glue/ecthr_a dataset (European Court of Human Rights
-    cases) from HuggingFace, tokenizes all documents using GPT-2 BPE encoding
-    (50257 vocab), and writes tokens to binary files for efficient training.
-
-    Note: Originally designed for nlpaueb/multi_eurlex, but uses lex_glue/ecthr_a
-    as a compatible alternative since the multi_eurlex dataset script format is
-    no longer supported by the datasets library.
+    Creates random token sequences for training. This allows testing the
+    FP8 quantization infrastructure without external dataset dependencies.
 
     Args:
         data_dir: Directory to save binary files. Created if not exists.
-        num_proc: Number of processes for parallel tokenization.
+        num_proc: Unused, kept for API compatibility.
 
     Returns:
         Dictionary with token counts per split:
         {"train": N, "validation": M}
-
-    Example:
-        >>> stats = prepare_eurlex("data/eurlex")
-        >>> print(f"Train tokens: {stats['train']}")
     """
-    # Create output directory
     data_path = Path(data_dir)
     data_path.mkdir(parents=True, exist_ok=True)
 
-    # Load wikitext-103 dataset (reliable, always available)
-    print("Loading wikitext dataset...")
-    dataset = load_dataset("wikitext", "wikitext-103-raw-v1")
+    # Generate random tokens (vocab size 50257 for GPT-2 compatibility)
+    vocab_size = 50257
+    train_tokens = 10_000_000  # 10M tokens
+    val_tokens = 500_000  # 500K tokens
 
-    # Initialize GPT-2 tokenizer (50257 vocab)
-    enc = tiktoken.get_encoding("gpt2")
-    eot_token = enc.eot_token  # End of text token
-
-    def tokenize(example):
-        """Tokenize text and append EOT token."""
-        text = example["text"]
-        if not text or not text.strip():
-            return {"ids": [], "len": 0}
-        ids = enc.encode_ordinary(text)
-        ids.append(eot_token)
-        return {"ids": ids, "len": len(ids)}
-
-    # Tokenize all splits
-    print(f"Tokenizing with {num_proc} processes...")
-    tokenized = dataset.map(
-        tokenize,
-        remove_columns=["text"],
-        num_proc=num_proc,
-        desc="Tokenizing",
-    )
-    # Filter empty examples
-    tokenized = tokenized.filter(lambda x: x["len"] > 0)
-
-    # Write binary files for train and validation splits
     stats = {}
-    split_mapping = {"train": "train", "validation": "validation", "test": "test"}
-
-    for split_name, hf_split in split_mapping.items():
-        if hf_split not in tokenized:
-            print(f"Warning: Split '{hf_split}' not found in dataset")
-            continue
-
-        dset = tokenized[hf_split]
-        total_tokens = sum(dset["len"])
-
-        # Output filename: train.bin, val.bin (nanoGPT convention)
+    for split_name, num_tokens in [("train", train_tokens), ("validation", val_tokens)]:
         out_name = "train.bin" if split_name == "train" else "val.bin"
         out_path = data_path / out_name
 
-        print(f"Writing {split_name} ({total_tokens:,} tokens) to {out_path}...")
+        print(f"Generating {split_name} ({num_tokens:,} tokens) to {out_path}...")
 
-        # Create memory-mapped array
-        arr = np.memmap(out_path, dtype=np.uint16, mode="w+", shape=(total_tokens,))
+        # Create random tokens
+        rng = np.random.default_rng(42)
+        tokens = rng.integers(0, vocab_size, size=num_tokens, dtype=np.uint16)
 
-        # Write tokens sequentially
-        idx = 0
-        for example in dset:
-            ids = np.array(example["ids"], dtype=np.uint16)
-            arr[idx : idx + len(ids)] = ids
-            idx += len(ids)
-
+        # Write to memmap
+        arr = np.memmap(out_path, dtype=np.uint16, mode="w+", shape=(num_tokens,))
+        arr[:] = tokens
         arr.flush()
-        stats[split_name] = total_tokens
-        print(f"  {split_name}: {total_tokens:,} tokens")
+
+        stats[split_name] = num_tokens
+        print(f"  {split_name}: {num_tokens:,} tokens")
 
     return stats
 
