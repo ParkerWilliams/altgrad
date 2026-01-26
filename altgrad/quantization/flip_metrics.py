@@ -28,13 +28,41 @@ Example:
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 from torch import Tensor
 
 from altgrad.quantization.formats import FP8Format
 from altgrad.quantization.ops import quantize
+
+
+def compute_stall_ratio(flips: int, updates: int) -> float:
+    """Compute stall ratio from flip and update counts.
+
+    Stall ratio measures what fraction of attempted updates failed to change
+    the quantized representation. High stall ratio indicates gradient steps
+    too small to overcome quantization granularity.
+
+    Args:
+        flips: Number of weights that changed FP8 representation
+        updates: Number of weights that received non-zero gradients
+
+    Returns:
+        Stall ratio in [0.0, 1.0] where:
+          - 0.0 = all updates caused flips (ideal)
+          - 1.0 = no updates caused flips (complete stall)
+          - 0.0 if updates == 0 (no gradient = no stall, not error)
+
+    Example:
+        >>> compute_stall_ratio(10, 100)  # 10 flips from 100 updates
+        0.9  # 90% stall rate
+        >>> compute_stall_ratio(0, 0)  # No gradient
+        0.0  # No stall (by definition)
+    """
+    if updates == 0:
+        return 0.0
+    return 1.0 - (flips / updates)
 
 
 def compute_flip_rate(prev_quantized: Tensor, curr_quantized: Tensor) -> float:
@@ -84,6 +112,7 @@ class WeightFlipTracker:
     Attributes:
         prev_quantized: Dict mapping layer names to their pre-step quantized state
         flip_counts: Dict mapping layer names to cumulative flip counts
+        update_counts: Dict mapping layer names to cumulative update counts
         total_weights: Dict mapping layer names to their weight count
 
     Example:
@@ -99,6 +128,7 @@ class WeightFlipTracker:
         """Initialize empty tracking state."""
         self.prev_quantized: Dict[str, Tensor] = {}
         self.flip_counts: Dict[str, int] = {}
+        self.update_counts: Dict[str, int] = {}
         self.total_weights: Dict[str, int] = {}
 
     def snapshot_pre_step(
@@ -107,20 +137,25 @@ class WeightFlipTracker:
         weight: Tensor,
         format: FP8Format,
         scale: Tensor,
+        grad: Optional[Tensor] = None,
     ) -> None:
         """Capture quantized weight state before optimizer step.
 
         Quantizes the weight tensor and stores a clone for later comparison.
         Must be called before optimizer.step() for accurate flip detection.
 
+        Optionally tracks update counts if gradient tensor is provided. Updates
+        are counted as weights with non-zero gradients (|grad| > 1e-10).
+
         Args:
             name: Layer name (unique identifier for tracking)
             weight: Weight tensor to snapshot
             format: FP8 format specification
             scale: Scale factor for quantization
+            grad: Optional gradient tensor for update counting
 
         Example:
-            >>> tracker.snapshot_pre_step("layer1", model.layer1.weight, E5M2, scale)
+            >>> tracker.snapshot_pre_step("layer1", model.layer1.weight, E5M2, scale, weight.grad)
             >>> optimizer.step()
             >>> tracker.compute_flips_post_step("layer1", model.layer1.weight, E5M2, scale)
         """
@@ -131,7 +166,13 @@ class WeightFlipTracker:
         # Initialize counters if first time seeing this layer
         if name not in self.flip_counts:
             self.flip_counts[name] = 0
+            self.update_counts[name] = 0
             self.total_weights[name] = weight.numel()
+
+        # Count updates if gradient provided
+        if grad is not None:
+            updates = (grad.abs() > 1e-10).sum().item()
+            self.update_counts[name] += int(updates)
 
     def compute_flips_post_step(
         self,
@@ -217,12 +258,55 @@ class WeightFlipTracker:
                 rates[name] = 0.0
         return rates
 
+    def get_update_counts(self) -> Dict[str, int]:
+        """Get cumulative per-layer update counts.
+
+        Update count tracks how many weights received non-zero gradients.
+        This represents attempted updates, regardless of whether they
+        caused FP8 representation changes.
+
+        Returns:
+            Dictionary mapping layer names to total update counts since last reset
+
+        Example:
+            >>> counts = tracker.get_update_counts()
+            >>> for name, count in counts.items():
+            ...     print(f"{name}: {count} updates attempted")
+        """
+        return dict(self.update_counts)
+
+    def get_stall_ratios(self) -> Dict[str, float]:
+        """Get per-layer stall ratios (1 - flips/updates).
+
+        Stall ratio measures what fraction of gradient updates failed to
+        change the FP8 representation. High stall indicates gradient steps
+        too small to overcome quantization granularity.
+
+        Returns:
+            Dictionary mapping layer names to stall ratios in [0.0, 1.0]:
+              - 0.0 = all updates caused flips (ideal)
+              - 1.0 = no updates caused flips (complete stall)
+              - 0.0 if no updates (no gradient = no stall)
+
+        Example:
+            >>> ratios = tracker.get_stall_ratios()
+            >>> for name, ratio in ratios.items():
+            ...     print(f"{name}: {ratio:.1%} stall rate")
+        """
+        ratios = {}
+        for name in self.flip_counts:
+            flips = self.flip_counts.get(name, 0)
+            updates = self.update_counts.get(name, 0)
+            ratios[name] = compute_stall_ratio(flips, updates)
+        return ratios
+
     def reset(self) -> None:
         """Clear all tracking state for new epoch or experiment.
 
         Resets:
           - Pre-step snapshots
           - Flip counts
+          - Update counts
           - Weight totals
 
         Example:
@@ -231,10 +315,12 @@ class WeightFlipTracker:
         """
         self.prev_quantized.clear()
         self.flip_counts.clear()
+        self.update_counts.clear()
         self.total_weights.clear()
 
 
 __all__ = [
     "compute_flip_rate",
+    "compute_stall_ratio",
     "WeightFlipTracker",
 ]
