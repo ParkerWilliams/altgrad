@@ -1,19 +1,21 @@
-"""FP8 format registry with bit-level transfer functions.
+"""Floating-point format registry with bit-level transfer functions.
 
-This module provides the mathematical foundation for all FP8 quantization.
-Each format's bit-index <-> real value mapping is precisely defined.
+Supports both 8-bit and 16-bit formats with arbitrary exponent/mantissa splits.
 
-FP8 Format Structure:
-- 8 bits total: sign (1) + exponent (E) + mantissa (M), where E+M=7
-- E0M7: 0 exponent, 7 mantissa - fixed-point in [-1, 1)
-- E1M6: 1 exponent, 6 mantissa - two scales
-- E3M4: 3 exponent, 4 mantissa - moderate range
-- E5M2: 5 exponent, 2 mantissa - standard FP8, wide range
-- E7M0: 7 exponent, 0 mantissa - powers of 2 only
+Format Structure:
+- N bits total: sign (1) + exponent (E) + mantissa (M), where E+M = N-1
+- 8-bit: E+M=7 (E0M7 through E7M0)
+- 16-bit: E+M=15 (E0M15 through E15M0)
+
+Standard formats:
+- BF16: E8M7 (16-bit, same exponent range as FP32)
+- FP16: E5M10 (16-bit, IEEE half precision)
+- FP8 E5M2: Standard ML 8-bit format
+- FP8 E4M3: Common ML 8-bit format
 
 Transfer Functions:
-- to_real(bit_index): Convert 8-bit pattern to real value
-- to_bits(value): Convert real value to nearest 8-bit pattern
+- to_real(bit_index): Convert bit pattern to real value
+- to_bits(value): Convert real value to nearest bit pattern
 """
 
 from __future__ import annotations
@@ -24,64 +26,106 @@ from typing import Dict
 
 
 @dataclass(frozen=True)
-class FP8Format:
-    """Specification for an 8-bit floating-point format.
+class FPFormat:
+    """Specification for a floating-point format with arbitrary bit width.
 
     Attributes:
-        name: Format identifier (e.g., "E5M2")
-        exponent_bits: Number of exponent bits (0-7)
-        mantissa_bits: Number of mantissa bits (7-exponent_bits)
+        name: Format identifier (e.g., "E5M2", "E8M7")
+        total_bits: Total bits including sign (8 or 16)
+        exponent_bits: Number of exponent bits
+        mantissa_bits: Number of mantissa bits
         bias: Exponent bias for normalized numbers
         has_inf: Whether format supports infinity representation
         has_nan: Whether format supports NaN representation
     """
 
     name: str
+    total_bits: int
     exponent_bits: int
     mantissa_bits: int
     bias: int
     has_inf: bool = False
     has_nan: bool = False
 
+    def __post_init__(self):
+        """Validate format specification."""
+        expected_mantissa = self.total_bits - 1 - self.exponent_bits
+        if self.mantissa_bits != expected_mantissa:
+            raise ValueError(
+                f"Invalid format: {self.total_bits} bits with E{self.exponent_bits} "
+                f"should have M{expected_mantissa}, got M{self.mantissa_bits}"
+            )
+
+    @property
+    def max_bit_value(self) -> int:
+        """Maximum bit pattern value."""
+        return (1 << self.total_bits) - 1
+
+    @property
+    def sign_shift(self) -> int:
+        """Bit position of sign bit."""
+        return self.total_bits - 1
+
     @property
     def max_representable_value(self) -> float:
         """Maximum finite positive value representable in this format."""
         if self.exponent_bits == 0:
-            # E0M7: pure fixed-point
+            # Pure fixed-point
             max_mantissa = (1 << self.mantissa_bits) - 1
             return max_mantissa / (1 << self.mantissa_bits)
 
         # Standard floating-point
         if self.has_inf:
-            # Max exponent is reserved for inf/nan
             max_exp = (1 << self.exponent_bits) - 2
         else:
             max_exp = (1 << self.exponent_bits) - 1
 
         max_mantissa = (1 << self.mantissa_bits) - 1
         mantissa_value = 1.0 + max_mantissa / (1 << self.mantissa_bits)
-        return (2 ** (max_exp - self.bias)) * mantissa_value
+
+        exp_value = max_exp - self.bias
+        # Protect against overflow for extreme formats
+        if exp_value > 1023:
+            return float('inf')
+        if exp_value < -1074:
+            return 0.0
+
+        return (2 ** exp_value) * mantissa_value
+
+    @property
+    def min_positive_value(self) -> float:
+        """Minimum positive value (smallest denorm)."""
+        if self.exponent_bits == 0:
+            return 1.0 / (1 << self.mantissa_bits)
+
+        exp_value = 1 - self.bias - self.mantissa_bits
+        # Protect against underflow for extreme formats
+        if exp_value < -1074:
+            return 0.0
+        if exp_value > 1023:
+            return float('inf')
+
+        return 2 ** exp_value
 
     def to_real(self, bit_index: int) -> float:
-        """Convert 8-bit pattern to real value.
+        """Convert bit pattern to real value.
 
         Args:
-            bit_index: Integer in range [0, 255] representing the bit pattern
+            bit_index: Integer representing the bit pattern
 
         Returns:
             Real number represented by this bit pattern
         """
-        if not 0 <= bit_index <= 255:
-            raise ValueError(f"bit_index must be in [0, 255], got {bit_index}")
+        if not 0 <= bit_index <= self.max_bit_value:
+            raise ValueError(f"bit_index must be in [0, {self.max_bit_value}], got {bit_index}")
 
         # Extract components
-        sign = (bit_index >> 7) & 1
+        sign = (bit_index >> self.sign_shift) & 1
         mantissa_mask = (1 << self.mantissa_bits) - 1
         mantissa = bit_index & mantissa_mask
 
         if self.exponent_bits == 0:
-            # E0M7: pure fixed-point format
-            # Value = mantissa / 2^7, sign bit determines sign
+            # Pure fixed-point format
             value = mantissa / (1 << self.mantissa_bits)
             return -value if sign else value
 
@@ -89,7 +133,7 @@ class FP8Format:
         exponent = (bit_index >> self.mantissa_bits) & ((1 << self.exponent_bits) - 1)
         max_exp = (1 << self.exponent_bits) - 1
 
-        # Handle special cases (inf, nan) for formats that support them
+        # Handle special cases (inf, nan)
         if self.has_inf and exponent == max_exp:
             if mantissa == 0:
                 return float('-inf') if sign else float('inf')
@@ -100,35 +144,30 @@ class FP8Format:
         if exponent == 0 and mantissa == 0:
             return -0.0 if sign else 0.0
 
-        # Handle denormalized numbers (exponent == 0, mantissa != 0)
+        # Handle denormalized numbers
         if exponent == 0:
-            # Denorm: value = 2^(1-bias) * (mantissa / 2^M)
             value = (2 ** (1 - self.bias)) * (mantissa / (1 << self.mantissa_bits))
             return -value if sign else value
 
-        # Normalized numbers: value = 2^(exp-bias) * (1 + mantissa / 2^M)
+        # Normalized numbers
         mantissa_value = 1.0 + mantissa / (1 << self.mantissa_bits)
         value = (2 ** (exponent - self.bias)) * mantissa_value
         return -value if sign else value
 
     def to_bits(self, value: float) -> int:
-        """Convert real value to nearest 8-bit pattern.
-
-        Uses round-to-nearest-even for ties.
+        """Convert real value to nearest bit pattern.
 
         Args:
             value: Real number to quantize
 
         Returns:
-            Integer in range [0, 255] representing the nearest bit pattern
+            Integer representing the nearest bit pattern
         """
         # Handle special values
         if math.isnan(value):
             if self.has_nan:
-                # NaN: max exponent, non-zero mantissa
                 max_exp = (1 << self.exponent_bits) - 1
                 return (max_exp << self.mantissa_bits) | 1
-            # Format doesn't support NaN, return 0
             return 0
 
         # Handle sign
@@ -139,17 +178,16 @@ class FP8Format:
         if math.isinf(abs_value):
             if self.has_inf:
                 max_exp = (1 << self.exponent_bits) - 1
-                return (sign << 7) | (max_exp << self.mantissa_bits)
-            # Format doesn't support inf, clamp to max
+                return (sign << self.sign_shift) | (max_exp << self.mantissa_bits)
             return self._clamp_to_max(sign)
 
         # Handle zero
         if abs_value == 0:
-            return sign << 7
+            return sign << self.sign_shift
 
-        # E0M7: pure fixed-point format
+        # Fixed-point format
         if self.exponent_bits == 0:
-            return self._to_bits_fixed_point(value, sign, abs_value)
+            return self._to_bits_fixed_point(sign, abs_value)
 
         return self._to_bits_floating(sign, abs_value)
 
@@ -160,95 +198,77 @@ class FP8Format:
         else:
             max_exp = (1 << self.exponent_bits) - 1
         max_mantissa = (1 << self.mantissa_bits) - 1
-        return (sign << 7) | (max_exp << self.mantissa_bits) | max_mantissa
+        return (sign << self.sign_shift) | (max_exp << self.mantissa_bits) | max_mantissa
 
-    def _to_bits_fixed_point(self, value: float, sign: int, abs_value: float) -> int:
-        """Convert to bits for E0M7 fixed-point format."""
+    def _to_bits_fixed_point(self, sign: int, abs_value: float) -> int:
+        """Convert to bits for fixed-point format."""
         max_mantissa = (1 << self.mantissa_bits) - 1
         max_value = max_mantissa / (1 << self.mantissa_bits)
 
-        # Clamp to representable range
         if abs_value > max_value:
             abs_value = max_value
 
-        # Convert to fixed-point with rounding
         scaled = abs_value * (1 << self.mantissa_bits)
         mantissa = int(round(scaled))
-
-        # Clamp mantissa
         mantissa = min(mantissa, max_mantissa)
 
-        return (sign << 7) | mantissa
+        return (sign << self.sign_shift) | mantissa
 
     def _to_bits_floating(self, sign: int, abs_value: float) -> int:
-        """Convert to bits for standard floating-point formats."""
+        """Convert to bits for floating-point formats."""
         max_exp = (1 << self.exponent_bits) - 1
         max_normal_exp = max_exp - 1 if self.has_inf else max_exp
 
-        # Calculate smallest denormalized value
         min_denorm = (2 ** (1 - self.bias)) / (1 << self.mantissa_bits)
 
-        # Handle values too small to represent
         if abs_value < min_denorm / 2:
-            return sign << 7  # Round to zero
+            return sign << self.sign_shift
 
-        # Handle denormalized numbers
         min_normal = 2 ** (1 - self.bias)
         if abs_value < min_normal:
             return self._to_bits_denorm(sign, abs_value)
 
-        # Calculate exponent
         log_val = math.floor(math.log2(abs_value))
         exponent = log_val + self.bias
 
-        # Handle overflow (clamp to max or inf)
         if exponent > max_normal_exp:
             if self.has_inf:
-                # Return infinity
-                return (sign << 7) | (max_exp << self.mantissa_bits)
+                return (sign << self.sign_shift) | (max_exp << self.mantissa_bits)
             else:
                 return self._clamp_to_max(sign)
 
-        # Handle underflow to denorm
         if exponent < 1:
             return self._to_bits_denorm(sign, abs_value)
 
-        # Calculate mantissa with rounding
         significand = abs_value / (2 ** (exponent - self.bias))
         mantissa_float = (significand - 1.0) * (1 << self.mantissa_bits)
 
-        # Round to nearest even
         mantissa = self._round_to_nearest_even(mantissa_float)
         max_mantissa = (1 << self.mantissa_bits) - 1
 
-        # Handle mantissa overflow (round up to next exponent)
         if mantissa > max_mantissa:
             mantissa = 0
             exponent += 1
             if exponent > max_normal_exp:
                 if self.has_inf:
-                    return (sign << 7) | (max_exp << self.mantissa_bits)
+                    return (sign << self.sign_shift) | (max_exp << self.mantissa_bits)
                 else:
                     return self._clamp_to_max(sign)
 
-        return (sign << 7) | (exponent << self.mantissa_bits) | mantissa
+        return (sign << self.sign_shift) | (exponent << self.mantissa_bits) | mantissa
 
     def _to_bits_denorm(self, sign: int, abs_value: float) -> int:
         """Convert to bits for denormalized numbers."""
-        # Denorm: value = 2^(1-bias) * (mantissa / 2^M)
-        # mantissa = value * 2^M / 2^(1-bias) = value * 2^(M + bias - 1)
         scale = 2 ** (self.mantissa_bits + self.bias - 1)
         mantissa_float = abs_value * scale
 
         mantissa = self._round_to_nearest_even(mantissa_float)
         max_mantissa = (1 << self.mantissa_bits) - 1
 
-        # Handle mantissa overflow (becomes smallest normal)
         if mantissa > max_mantissa:
-            # Becomes normalized with exp=1, mantissa=0
-            return (sign << 7) | (1 << self.mantissa_bits)
+            return (sign << self.sign_shift) | (1 << self.mantissa_bits)
 
-        return (sign << 7) | mantissa
+        return (sign << self.sign_shift) | mantissa
 
     def _round_to_nearest_even(self, value: float) -> int:
         """Round to nearest integer, with ties going to even."""
@@ -260,79 +280,209 @@ class FP8Format:
         elif frac > 0.5:
             return int(floor_val) + 1
         else:
-            # Exactly 0.5: round to even
             if int(floor_val) % 2 == 0:
                 return int(floor_val)
             else:
                 return int(floor_val) + 1
 
 
-# Format definitions
-# E0M7: Fixed-point format with values in [-1, 1)
-E0M7 = FP8Format(
-    name="E0M7",
-    exponent_bits=0,
-    mantissa_bits=7,
-    bias=0,
-    has_inf=False,
-    has_nan=False,
-)
+# Backward compatibility alias
+FP8Format = FPFormat
 
-# E1M6: Two-scale format
-E1M6 = FP8Format(
-    name="E1M6",
-    exponent_bits=1,
-    mantissa_bits=6,
-    bias=0,
-    has_inf=False,
-    has_nan=False,
-)
 
-# E3M4: Moderate range format (~0.06 to ~124)
-E3M4 = FP8Format(
-    name="E3M4",
-    exponent_bits=3,
-    mantissa_bits=4,
-    bias=1,  # bias=1 for range ~0.06 to ~124
-    has_inf=False,
-    has_nan=False,
-)
+def _compute_bias(exponent_bits: int, standard: bool = True) -> int:
+    """Compute standard IEEE-style bias for given exponent bits.
 
-# E5M2: Standard FP8 format with wide dynamic range (IEEE-like)
-E5M2 = FP8Format(
-    name="E5M2",
-    exponent_bits=5,
-    mantissa_bits=2,
-    bias=15,  # Standard bias = 2^(E-1) - 1 = 2^4 - 1 = 15
-    has_inf=True,
-    has_nan=True,
-)
+    Args:
+        exponent_bits: Number of exponent bits
+        standard: If True, use IEEE bias (2^(E-1) - 1)
 
-# E7M0: Powers of 2 only (extreme format for testing)
-E7M0 = FP8Format(
-    name="E7M0",
-    exponent_bits=7,
-    mantissa_bits=0,
-    bias=63,  # Standard bias = 2^(E-1) - 1 = 2^6 - 1 = 63
-    has_inf=False,
-    has_nan=False,
-)
+    Returns:
+        Bias value
+    """
+    if exponent_bits == 0:
+        return 0
+    if standard:
+        return (1 << (exponent_bits - 1)) - 1
+    return 0
 
-# Format registry
-FORMAT_REGISTRY: Dict[str, FP8Format] = {
-    "E0M7": E0M7,
-    "E1M6": E1M6,
-    "E3M4": E3M4,
-    "E5M2": E5M2,
-    "E7M0": E7M0,
+
+# ============================================================================
+# 8-BIT FORMATS (E+M=7)
+# ============================================================================
+
+# All 8-bit E/M splits
+FP8_E0M7 = FPFormat(name="FP8_E0M7", total_bits=8, exponent_bits=0, mantissa_bits=7, bias=0)
+FP8_E1M6 = FPFormat(name="FP8_E1M6", total_bits=8, exponent_bits=1, mantissa_bits=6, bias=0)
+FP8_E2M5 = FPFormat(name="FP8_E2M5", total_bits=8, exponent_bits=2, mantissa_bits=5, bias=1)
+FP8_E3M4 = FPFormat(name="FP8_E3M4", total_bits=8, exponent_bits=3, mantissa_bits=4, bias=3)
+FP8_E4M3 = FPFormat(name="FP8_E4M3", total_bits=8, exponent_bits=4, mantissa_bits=3, bias=7, has_inf=False, has_nan=True)
+FP8_E5M2 = FPFormat(name="FP8_E5M2", total_bits=8, exponent_bits=5, mantissa_bits=2, bias=15, has_inf=True, has_nan=True)
+FP8_E6M1 = FPFormat(name="FP8_E6M1", total_bits=8, exponent_bits=6, mantissa_bits=1, bias=31)
+FP8_E7M0 = FPFormat(name="FP8_E7M0", total_bits=8, exponent_bits=7, mantissa_bits=0, bias=63)
+
+
+# ============================================================================
+# 16-BIT FORMATS (E+M=15)
+# ============================================================================
+
+# Standard 16-bit formats
+FP16 = FPFormat(name="FP16", total_bits=16, exponent_bits=5, mantissa_bits=10, bias=15, has_inf=True, has_nan=True)  # IEEE half
+BF16 = FPFormat(name="BF16", total_bits=16, exponent_bits=8, mantissa_bits=7, bias=127, has_inf=True, has_nan=True)  # Brain float
+
+# All 16-bit E/M splits
+FP16_E0M15 = FPFormat(name="FP16_E0M15", total_bits=16, exponent_bits=0, mantissa_bits=15, bias=0)
+FP16_E1M14 = FPFormat(name="FP16_E1M14", total_bits=16, exponent_bits=1, mantissa_bits=14, bias=0)
+FP16_E2M13 = FPFormat(name="FP16_E2M13", total_bits=16, exponent_bits=2, mantissa_bits=13, bias=1)
+FP16_E3M12 = FPFormat(name="FP16_E3M12", total_bits=16, exponent_bits=3, mantissa_bits=12, bias=3)
+FP16_E4M11 = FPFormat(name="FP16_E4M11", total_bits=16, exponent_bits=4, mantissa_bits=11, bias=7)
+FP16_E5M10 = FP16  # Same as IEEE FP16
+FP16_E6M9 = FPFormat(name="FP16_E6M9", total_bits=16, exponent_bits=6, mantissa_bits=9, bias=31)
+FP16_E7M8 = FPFormat(name="FP16_E7M8", total_bits=16, exponent_bits=7, mantissa_bits=8, bias=63)
+FP16_E8M7 = BF16  # Same as BF16
+FP16_E9M6 = FPFormat(name="FP16_E9M6", total_bits=16, exponent_bits=9, mantissa_bits=6, bias=255)
+FP16_E10M5 = FPFormat(name="FP16_E10M5", total_bits=16, exponent_bits=10, mantissa_bits=5, bias=511)
+FP16_E11M4 = FPFormat(name="FP16_E11M4", total_bits=16, exponent_bits=11, mantissa_bits=4, bias=1023)
+FP16_E12M3 = FPFormat(name="FP16_E12M3", total_bits=16, exponent_bits=12, mantissa_bits=3, bias=2047)
+FP16_E13M2 = FPFormat(name="FP16_E13M2", total_bits=16, exponent_bits=13, mantissa_bits=2, bias=4095)
+FP16_E14M1 = FPFormat(name="FP16_E14M1", total_bits=16, exponent_bits=14, mantissa_bits=1, bias=8191)
+FP16_E15M0 = FPFormat(name="FP16_E15M0", total_bits=16, exponent_bits=15, mantissa_bits=0, bias=16383)
+
+
+# ============================================================================
+# FORMAT REGISTRIES
+# ============================================================================
+
+# 8-bit formats
+FP8_FORMATS: Dict[str, FPFormat] = {
+    "FP8_E0M7": FP8_E0M7,
+    "FP8_E1M6": FP8_E1M6,
+    "FP8_E2M5": FP8_E2M5,
+    "FP8_E3M4": FP8_E3M4,
+    "FP8_E4M3": FP8_E4M3,
+    "FP8_E5M2": FP8_E5M2,
+    "FP8_E6M1": FP8_E6M1,
+    "FP8_E7M0": FP8_E7M0,
 }
 
+# 16-bit formats
+FP16_FORMATS: Dict[str, FPFormat] = {
+    "FP16": FP16,
+    "BF16": BF16,
+    "FP16_E0M15": FP16_E0M15,
+    "FP16_E1M14": FP16_E1M14,
+    "FP16_E2M13": FP16_E2M13,
+    "FP16_E3M12": FP16_E3M12,
+    "FP16_E4M11": FP16_E4M11,
+    "FP16_E5M10": FP16,
+    "FP16_E6M9": FP16_E6M9,
+    "FP16_E7M8": FP16_E7M8,
+    "FP16_E8M7": BF16,
+    "FP16_E9M6": FP16_E9M6,
+    "FP16_E10M5": FP16_E10M5,
+    "FP16_E11M4": FP16_E11M4,
+    "FP16_E12M3": FP16_E12M3,
+    "FP16_E13M2": FP16_E13M2,
+    "FP16_E14M1": FP16_E14M1,
+    "FP16_E15M0": FP16_E15M0,
+}
+
+# Combined registry (all formats)
+FORMAT_REGISTRY: Dict[str, FPFormat] = {
+    **FP8_FORMATS,
+    **FP16_FORMATS,
+    # Legacy aliases (without FP8_ prefix)
+    "E0M7": FP8_E0M7,
+    "E1M6": FP8_E1M6,
+    "E2M5": FP8_E2M5,
+    "E3M4": FP8_E3M4,
+    "E4M3": FP8_E4M3,
+    "E5M2": FP8_E5M2,
+    "E6M1": FP8_E6M1,
+    "E7M0": FP8_E7M0,
+}
+
+# Legacy aliases for backward compatibility
+E0M7 = FP8_E0M7
+E1M6 = FP8_E1M6
+E2M5 = FP8_E2M5
+E3M4 = FP8_E3M4
+E4M3 = FP8_E4M3
+E5M2 = FP8_E5M2
+E6M1 = FP8_E6M1
+E7M0 = FP8_E7M0
+
+
+def list_formats(bits: int = None) -> list:
+    """List available formats.
+
+    Args:
+        bits: Filter by bit width (8 or 16), or None for all
+
+    Returns:
+        List of format names
+    """
+    if bits == 8:
+        return list(FP8_FORMATS.keys())
+    elif bits == 16:
+        return list(FP16_FORMATS.keys())
+    else:
+        return list(FORMAT_REGISTRY.keys())
+
+
+def format_summary() -> str:
+    """Generate summary table of all formats."""
+    lines = []
+    lines.append("=" * 80)
+    lines.append("FLOATING-POINT FORMAT REGISTRY")
+    lines.append("=" * 80)
+    lines.append("")
+
+    lines.append("8-BIT FORMATS (E+M=7)")
+    lines.append("-" * 80)
+    lines.append(f"{'Name':<12} {'Exp':>4} {'Man':>4} {'Bias':>6} {'Max Value':>15} {'Min Positive':>15}")
+    lines.append("-" * 80)
+    for name, fmt in FP8_FORMATS.items():
+        lines.append(
+            f"{name:<12} {fmt.exponent_bits:>4} {fmt.mantissa_bits:>4} {fmt.bias:>6} "
+            f"{fmt.max_representable_value:>15.6g} {fmt.min_positive_value:>15.6g}"
+        )
+    lines.append("")
+
+    lines.append("16-BIT FORMATS (E+M=15)")
+    lines.append("-" * 80)
+    lines.append(f"{'Name':<12} {'Exp':>4} {'Man':>4} {'Bias':>6} {'Max Value':>15} {'Min Positive':>15}")
+    lines.append("-" * 80)
+    for name, fmt in FP16_FORMATS.items():
+        if name in ("FP16_E5M10", "FP16_E8M7"):
+            continue  # Skip aliases
+        lines.append(
+            f"{name:<12} {fmt.exponent_bits:>4} {fmt.mantissa_bits:>4} {fmt.bias:>6} "
+            f"{fmt.max_representable_value:>15.6g} {fmt.min_positive_value:>15.6g}"
+        )
+    lines.append("")
+    lines.append("=" * 80)
+
+    return "\n".join(lines)
+
+
 __all__ = [
-    "FP8Format",
-    "E0M7",
-    "E1M6",
-    "E3M4",
-    "E5M2",
-    "E7M0",
-    "FORMAT_REGISTRY",
+    # Core class
+    "FPFormat",
+    "FP8Format",  # Backward compatibility alias
+    # 8-bit formats
+    "FP8_E0M7", "FP8_E1M6", "FP8_E2M5", "FP8_E3M4",
+    "FP8_E4M3", "FP8_E5M2", "FP8_E6M1", "FP8_E7M0",
+    # 16-bit formats
+    "FP16", "BF16",
+    "FP16_E0M15", "FP16_E1M14", "FP16_E2M13", "FP16_E3M12",
+    "FP16_E4M11", "FP16_E6M9", "FP16_E7M8", "FP16_E9M6",
+    "FP16_E10M5", "FP16_E11M4", "FP16_E12M3", "FP16_E13M2",
+    "FP16_E14M1", "FP16_E15M0",
+    # Registries
+    "FP8_FORMATS", "FP16_FORMATS", "FORMAT_REGISTRY",
+    # Legacy aliases
+    "E0M7", "E1M6", "E2M5", "E3M4", "E4M3", "E5M2", "E6M1", "E7M0",
+    # Utilities
+    "list_formats", "format_summary",
 ]

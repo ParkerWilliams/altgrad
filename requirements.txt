@@ -5,3 +5,5 @@ wandb
 pyyaml
 pandas
 datasets
+transformers
+scikit-learn
