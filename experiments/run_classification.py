@@ -76,12 +76,15 @@ def run_experiment(
     print(f"Number of labels: {num_labels}")
 
     # Model
+    pos_weight = config_overrides.get("pos_weight", 10.0)  # Default: 10x penalty for FN
     model_config = ClassifierConfig(
         num_labels=num_labels,
         quantize_encoder=(fp8_format != "BF16"),
         quantize_classifier=False,
+        pos_weight=pos_weight,
     )
     model = TransformerClassifier(model_config)
+    print(f"Positive class weight: {pos_weight}")
 
     # Training config
     use_fp8 = (fp8_format != "BF16")
@@ -180,6 +183,7 @@ def main():
     parser.add_argument("--max-steps", type=int, default=5000, help="Max training steps")
     parser.add_argument("--batch-size", type=int, default=16, help="Batch size")
     parser.add_argument("--wandb-project", type=str, default=None, help="W&B project (disabled if not set)")
+    parser.add_argument("--pos-weight", type=float, default=10.0, help="Positive class weight (penalize FN)")
     parser.add_argument("--full-matrix", action="store_true", help="Run all 12 conditions")
 
     args = parser.parse_args()
@@ -199,6 +203,8 @@ def main():
         config_overrides["batch_size"] = args.batch_size
     if args.wandb_project is not None:
         config_overrides["wandb_project"] = args.wandb_project
+    if args.pos_weight:
+        config_overrides["pos_weight"] = args.pos_weight
 
     # Run experiments
     if args.full_matrix:

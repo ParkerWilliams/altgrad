@@ -30,6 +30,9 @@ class ClassifierConfig:
     quantize_encoder: bool = True
     quantize_classifier: bool = False  # Keep classifier in full precision
 
+    # Loss function
+    pos_weight: float = 1.0  # Weight for positive class (higher = penalize FN more)
+
 
 class TransformerClassifier(nn.Module):
     """Transformer encoder with multi-label classification head.
@@ -70,8 +73,14 @@ class TransformerClassifier(nn.Module):
         self.dropout = nn.Dropout(config.classifier_dropout)
         self.classifier = nn.Linear(hidden_size, config.num_labels)
 
-        # Loss function for multi-label
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        # Loss function for multi-label with asymmetric weighting
+        # pos_weight > 1 penalizes false negatives more heavily
+        if config.pos_weight != 1.0:
+            pos_weight = torch.full((config.num_labels,), config.pos_weight)
+            self.register_buffer("pos_weight", pos_weight)
+            self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        else:
+            self.loss_fn = nn.BCEWithLogitsLoss()
 
         # Track which parameters to quantize
         self._quantize_param_names = set()
