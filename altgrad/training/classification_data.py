@@ -71,6 +71,9 @@ class EURLexDataset(Dataset):
         # Initialize tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
+        # EUR-Lex uses "eurovoc_concepts" as the label field
+        label_field = "eurovoc_concepts"
+
         # Use provided vocabulary or build from this split
         if label_to_idx is not None:
             self.label_to_idx = label_to_idx
@@ -78,7 +81,7 @@ class EURLexDataset(Dataset):
             # Build label vocabulary from all labels in dataset
             all_labels = set()
             for example in dataset:
-                all_labels.update(example["labels"])
+                all_labels.update(example[label_field])
             self.label_to_idx = {label: idx for idx, label in enumerate(sorted(all_labels))}
 
         self.idx_to_label = {idx: label for label, idx in self.label_to_idx.items()}
@@ -97,7 +100,7 @@ class EURLexDataset(Dataset):
         # Convert labels to multi-hot vectors using the vocabulary
         self.labels = torch.zeros(len(dataset), self.num_labels)
         for i, example in enumerate(dataset):
-            for label in example["labels"]:
+            for label in example[label_field]:
                 if label in self.label_to_idx:
                     self.labels[i, self.label_to_idx[label]] = 1.0
 
