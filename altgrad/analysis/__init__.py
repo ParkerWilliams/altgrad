@@ -22,10 +22,27 @@ from altgrad.analysis.data_loader import ExperimentDataLoader
 from altgrad.analysis.comparisons import FormatComparator
 from altgrad.analysis.failure_analysis import FailureAnalyzer
 from altgrad.analysis.report_generator import ReportGenerator
+from altgrad.analysis.results_table import (
+    ResultsTable,
+    ExperimentRow,
+    ThroughputMetrics,
+    ClassifierMetrics,
+    RankMetrics,
+    TrainingMetrics,
+    demo_table,
+)
 
 __all__ = [
     "ExperimentDataLoader",
     "FormatComparator",
     "FailureAnalyzer",
     "ReportGenerator",
+    # Results table
+    "ResultsTable",
+    "ExperimentRow",
+    "ThroughputMetrics",
+    "ClassifierMetrics",
+    "RankMetrics",
+    "TrainingMetrics",
+    "demo_table",
 ]

@@ -46,6 +46,7 @@ class EURLexDataset(Dataset):
         max_length: int = 512,
         max_examples: Optional[int] = None,
         tokenizer_name: str = "distilbert-base-uncased",
+        label_to_idx: Optional[Dict[str, int]] = None,
     ):
         """Load and prepare EUR-Lex dataset.
 
@@ -54,6 +55,7 @@ class EURLexDataset(Dataset):
             max_length: Maximum sequence length for tokenization
             max_examples: Limit number of examples (None = all)
             tokenizer_name: HuggingFace tokenizer to use
+            label_to_idx: Pre-built label vocabulary (for val/test consistency)
         """
         # Load dataset
         dataset = load_dataset(
@@ -69,12 +71,16 @@ class EURLexDataset(Dataset):
         # Initialize tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
-        # Build label vocabulary from all labels in dataset
-        all_labels = set()
-        for example in dataset:
-            all_labels.update(example["labels"])
+        # Use provided vocabulary or build from this split
+        if label_to_idx is not None:
+            self.label_to_idx = label_to_idx
+        else:
+            # Build label vocabulary from all labels in dataset
+            all_labels = set()
+            for example in dataset:
+                all_labels.update(example["labels"])
+            self.label_to_idx = {label: idx for idx, label in enumerate(sorted(all_labels))}
 
-        self.label_to_idx = {label: idx for idx, label in enumerate(sorted(all_labels))}
         self.idx_to_label = {idx: label for label, idx in self.label_to_idx.items()}
         self.num_labels = len(self.label_to_idx)
 
@@ -88,7 +94,7 @@ class EURLexDataset(Dataset):
             return_tensors="pt",
         )
 
-        # Convert labels to multi-hot vectors
+        # Convert labels to multi-hot vectors using the vocabulary
         self.labels = torch.zeros(len(dataset), self.num_labels)
         for i, example in enumerate(dataset):
             for label in example["labels"]:
@@ -125,18 +131,22 @@ def create_dataloaders(
     Returns:
         Tuple of (train_loader, val_loader, test_loader, num_labels)
     """
+    # Train dataset defines the label vocabulary
     train_dataset = EURLexDataset(
         split="train",
         max_length=max_length,
         max_examples=max_examples,
         tokenizer_name=tokenizer_name,
+        label_to_idx=None,  # Build vocabulary from train
     )
 
+    # Val/test use train's vocabulary for consistent label indexing
     val_dataset = EURLexDataset(
         split="validation",
         max_length=max_length,
         max_examples=max_examples,
         tokenizer_name=tokenizer_name,
+        label_to_idx=train_dataset.label_to_idx,  # Use train vocabulary
     )
 
     test_dataset = EURLexDataset(
@@ -144,17 +154,8 @@ def create_dataloaders(
         max_length=max_length,
         max_examples=max_examples,
         tokenizer_name=tokenizer_name,
+        label_to_idx=train_dataset.label_to_idx,  # Use train vocabulary
     )
-
-    # Use same label vocabulary across splits
-    # (train defines the vocabulary, others must match)
-    val_dataset.label_to_idx = train_dataset.label_to_idx
-    val_dataset.idx_to_label = train_dataset.idx_to_label
-    val_dataset.num_labels = train_dataset.num_labels
-
-    test_dataset.label_to_idx = train_dataset.label_to_idx
-    test_dataset.idx_to_label = train_dataset.idx_to_label
-    test_dataset.num_labels = train_dataset.num_labels
 
     train_loader = DataLoader(
         train_dataset,

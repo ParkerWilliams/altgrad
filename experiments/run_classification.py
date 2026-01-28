@@ -179,7 +179,7 @@ def main():
     parser.add_argument("--max-examples", type=int, help="Limit examples per split")
     parser.add_argument("--max-steps", type=int, default=5000, help="Max training steps")
     parser.add_argument("--batch-size", type=int, default=16, help="Batch size")
-    parser.add_argument("--wandb-project", type=str, default="altgrad-classification", help="W&B project")
+    parser.add_argument("--wandb-project", type=str, default=None, help="W&B project (disabled if not set)")
     parser.add_argument("--full-matrix", action="store_true", help="Run all 12 conditions")
 
     args = parser.parse_args()
@@ -197,7 +197,7 @@ def main():
         config_overrides["max_steps"] = args.max_steps
     if args.batch_size:
         config_overrides["batch_size"] = args.batch_size
-    if args.wandb_project:
+    if args.wandb_project is not None:
         config_overrides["wandb_project"] = args.wandb_project
 
     # Run experiments
