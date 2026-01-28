@@ -4,6 +4,6 @@ tiktoken
 wandb
 pyyaml
 pandas
-datasets
+datasets>=2.14.0,<3.0.0
 transformers
 scikit-learn
